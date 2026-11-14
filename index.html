@@ -1,252 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDOL Certified Payroll Extractor</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-/* Custom styles for IDOL Certified Payroll Extractor */
-
-body {
-    background-color: #f5f6f8;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>IDOL Certified Payroll Extractor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --text: #1a1f26; --text-muted: #4d5866;
+  --border: #d3d9e0; --primary: #0b5cad; --on-primary: #ffffff; --primary-hover: #094a8d;
+  --danger: #b3261e; --danger-bg: #fdecea; --warn: #7a5200; --warn-bg: #fff4d6;
+  --ok: #1b6b34; --focus: #0b5cad; --stripe: #f3f5f8; --hover: #e6edf7; --pass-bg: #d1e7dd; --pass-text: #0f5132;
+  --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px; --s6: 48px;
+  --fs-sm: 14px; --fs-md: 16px; --fs-lg: 24px; --fs-xl: 32px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-
-/* Drop zone */
-.drop-zone {
-    border: 2px dashed #adb5bd;
-    border-radius: 12px;
-    background-color: #fff;
-    cursor: pointer;
-    transition: border-color 0.2s, background-color 0.2s;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161b; --surface: #1b2027; --text: #e8ecf1; --text-muted: #aab4c0;
+    --border: #343c47; --primary: #7db4f0; --on-primary: #0b1a2b; --primary-hover: #9cc5f5;
+    --danger: #ff9b94; --danger-bg: #3a1f1e; --warn: #f0c36d; --warn-bg: #35290f;
+    --ok: #7fd49a; --focus: #9cc5f5; --stripe: #1f252d; --hover: #2a3340; --pass-bg: #1d3b2a; --pass-text: #9fe0b4;
+  }
 }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 var(--fs-md)/1.5 var(--font); }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: var(--fs-lg); font-weight: 700; }
+h2 { font-size: var(--fs-md); font-weight: 700; }
+a { color: var(--primary); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
-.drop-zone:hover {
-    border-color: #0d6efd;
-    background-color: #f8f9ff;
-}
+.app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: var(--s2) var(--s3); display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: baseline; justify-content: space-between; }
+.muted { color: var(--text-muted); }
+.small { font-size: var(--fs-sm); }
+main { max-width: 1600px; margin: 0 auto; padding: var(--s3); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
+main > section, #dashboard, #table-section { min-width: 0; max-width: 100%; }
+footer { padding: var(--s3); text-align: center; color: var(--text-muted); font-size: var(--fs-sm); border-top: 1px solid var(--border); }
 
-.drop-zone.dragover {
-    border-color: #0d6efd;
-    background-color: #e7f1ff;
-}
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s3); }
+.card > h2 { margin-bottom: var(--s2); }
 
-.drop-zone i {
-    color: #6c757d;
-}
+/* Buttons */
+.btn { font: 600 var(--fs-sm)/1 var(--font); padding: 12px var(--s2); border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 40px; }
+.btn:hover { border-color: var(--primary); }
+.btn:active { background: var(--bg); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.link-btn { font: inherit; color: var(--primary); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline; }
+.link-btn:hover { text-decoration-thickness: 2px; }
+.link-btn[aria-pressed="true"] { font-weight: 700; color: var(--text); }
 
-.drop-zone:hover i {
-    color: #0d6efd;
-}
+/* Upload */
+.drop-zone { display: block; border: 2px dashed var(--border); border-radius: 8px; background: var(--surface); padding: var(--s6) var(--s3); text-align: center; cursor: pointer; }
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: var(--bg); }
+.drop-zone:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.drop-zone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop-zone .title { font-size: var(--fs-lg); font-weight: 700; display: block; margin-bottom: var(--s1); }
+.notice { padding: var(--s2); border-radius: 8px; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.notice.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+.notice ul { margin: var(--s1) 0 0; padding-left: var(--s3); }
 
-/* Summary cards */
-.summary-card {
-    border: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
+/* Processing */
+progress { width: 100%; height: 8px; margin: var(--s2) 0; accent-color: var(--primary); }
+#processing-log { list-style: none; margin: 0; padding: 0; font-size: var(--fs-sm); display: grid; gap: var(--s1); }
 
-.summary-card h3 {
-    font-weight: 700;
-}
+/* Toolbar */
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: space-between; }
+.toolbar .actions { display: flex; flex-wrap: wrap; gap: var(--s1); }
 
-/* Results table */
-#results-table {
-    font-size: 0.8rem;
-    white-space: nowrap;
-}
+/* Dashboard */
+.tiles { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s3); display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.tile .label { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
+.tile .value { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; }
+.tile .value.range { font-size: var(--fs-lg); }
+.tile ul { list-style: none; margin: var(--s1) 0 0; padding: var(--s1) 0 0; border-top: 1px solid var(--border); max-height: 168px; overflow: auto; display: grid; gap: var(--s1); font-size: var(--fs-sm); }
+.tile ul li { display: flex; justify-content: space-between; gap: var(--s1); }
+.tile ul .count { color: var(--text-muted); white-space: nowrap; }
 
-#results-table thead th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+.wage { display: grid; gap: var(--s2); }
+.wage.below { border-left: 8px solid var(--danger); }
+.wage.clear { border-left: 8px solid var(--ok); }
+.wage-head { display: flex; flex-wrap: wrap; gap: var(--s2); justify-content: space-between; align-items: flex-start; }
+.wage-head .headline { font-size: var(--fs-lg); font-weight: 700; max-width: 900px; }
+.wage .neg { color: var(--danger); }
+.facts { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.fact .label { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
+.fact .value { font-size: var(--fs-lg); font-weight: 700; }
+.mini-wrap { overflow: auto; max-height: 280px; border: 1px solid var(--border); border-radius: 8px; }
 
-#results-table td {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+/* Tables */
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+th, td { padding: var(--s1) var(--s2); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+thead th { position: sticky; top: 0; background: var(--surface); z-index: 2; border-bottom: 2px solid var(--border); font-weight: 700; padding: 0; }
+thead th .th-btn, thead th .th-plain { display: block; width: 100%; padding: var(--s1) var(--s2); font: inherit; font-weight: 700; color: var(--text); background: none; border: 0; text-align: left; cursor: pointer; }
+thead th .th-plain { cursor: default; }
+thead th .th-btn:hover { background: var(--bg); }
+th.num, td.num { text-align: right; }
+th.num .th-btn { text-align: right; }
+td.text { max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+td.empty { color: var(--text-muted); }
+td.neg { color: var(--danger); font-weight: 600; }
+th.secondary, td.secondary { color: var(--text-muted); }
+th.sec-start, td.sec-start { border-left: 2px solid var(--border); }
+tbody tr:nth-child(even) td { background: var(--stripe); }
+tbody tr:hover td { background: var(--hover); }
+tr.below td, tr.below:nth-child(even) td { background: var(--danger-bg); }
+tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
+.badge { display: inline-block; padding: 2px var(--s1); border-radius: 4px; font-weight: 600; border: 1px solid var(--border); }
+.badge.below { color: var(--danger); background: var(--danger-bg); border-color: var(--danger); }
+.badge.meets { color: var(--pass-text); background: var(--pass-bg); border-color: var(--pass-bg); }
+.badge.norate { color: var(--warn); background: var(--warn-bg); border-color: var(--warn); }
 
-#results-table td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-word;
-}
+.table-tools { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
+.table-tools input[type=search] { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); min-width: 260px; min-height: 40px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { font: 600 var(--fs-sm)/1 var(--font); padding: 12px var(--s2); background: var(--surface); color: var(--text); border: 0; border-right: 1px solid var(--border); cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button:hover { background: var(--bg); }
+.seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
+.pills { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.pill { display: inline-flex; gap: var(--s1); align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: var(--fs-sm); }
+.pill button { font: inherit; background: none; border: 0; color: var(--text); cursor: pointer; padding: 0 4px; }
+.table-scroll { max-width: 100%; overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 8px; }
+.table-foot { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: space-between; margin-top: var(--s2); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Validation badges */
-.badge-check-pass {
-    background-color: #d1e7dd;
-    color: #0f5132;
-}
-
-.badge-check-fail {
-    background-color: #f8d7da;
-    color: #842029;
-}
-
-/* Processing log */
-#processing-log li {
-    padding: 4px 0;
-}
-
-/* Navbar */
-.navbar-brand {
-    font-size: 1.1rem;
-    font-weight: 500;
-}
+/* Complaint text */
+.cx-options { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: end; margin-bottom: var(--s2); }
+.cx-options label.field { display: grid; gap: 4px; font-size: var(--fs-sm); font-weight: 600; }
+.cx-options select { font: inherit; padding: 8px var(--s1); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); min-height: 40px; max-width: 100%; }
+.cx-checks { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin-bottom: var(--s2); font-size: var(--fs-sm); }
+.cx-checks label { display: inline-flex; gap: var(--s1); align-items: center; cursor: pointer; }
+.cx-checks input { width: 16px; height: 16px; accent-color: var(--primary); }
+.cx-actions { display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center; margin: var(--s2) 0; }
+.complaint-text { display: block; width: 100%; max-width: 100ch; min-height: 320px; padding: var(--s2); font: 400 var(--fs-md)/1.6 var(--font); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; resize: vertical; white-space: pre-wrap; }
 </style>
 </head>
 <body>
-    <!-- PDF.js library (loaded before parser.js) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<header class="app-header">
+  <h1>IDOL Certified Payroll Extractor</h1>
+  <p class="muted small">Upload CTP PDFs for processing</p>
+</header>
 
-    <nav class="navbar navbar-dark bg-dark py-2">
-        <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="bi bi-file-earmark-spreadsheet"></i>
-                IDOL Certified Payroll Extractor
-            </span>
-            <span class="navbar-text d-none d-sm-inline text-secondary small">
-                LDC LMCC
-            </span>
-        </div>
-    </nav>
+<main id="main">
 
-    <div class="container-fluid py-4">
+  <section id="upload-section" aria-label="Upload">
+    <label class="drop-zone" id="drop-zone">
+      <span class="title">Drop PDF files here, or click to choose files</span>
+      <span class="muted">Select one or more IDOL Certified Transcript of Payroll PDFs.</span>
+      <input type="file" id="file-input" multiple accept=".pdf,application/pdf">
+    </label>
+    <p id="upload-msg" class="notice danger" role="alert" hidden style="margin-top: var(--s2);"></p>
+  </section>
 
-        <!-- Upload area -->
-        <div id="upload-section">
-            <div id="drop-zone" class="drop-zone text-center p-5 mb-4">
-                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem;"></i>
-                <h5 class="mt-3 mb-1">Drop PDF files here or click to browse</h5>
-                <p class="text-muted mb-0">Upload one or more IDOL Certified Transcript of Payroll PDFs</p>
-                <input type="file" id="file-input" multiple accept=".pdf" style="display:none;">
-            </div>
-        </div>
+  <section id="processing-section" class="card" aria-live="polite" hidden>
+    <h2 id="processing-title">Reading PDFs</h2>
+    <progress id="processing-progress" value="0" max="1"></progress>
+    <ul id="processing-log"></ul>
+  </section>
 
-        <!-- Processing status -->
-        <div id="processing-section" style="display:none;">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h6 class="card-title mb-3">
-                        <span class="spinner-border spinner-border-sm me-2"></span>
-                        Processing PDFs...
-                    </h6>
-                    <ul id="processing-log" class="list-unstyled mb-0 small"></ul>
-                </div>
-            </div>
-        </div>
+  <section id="results-section" hidden>
+    <div class="toolbar">
+      <div>
+        <h2 style="font-size: var(--fs-lg);">Results</h2>
+        <p id="results-summary" class="muted small"></p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="download-csv">Download CSV</button>
+        <button type="button" class="btn btn-primary" id="download-json">Download JSON</button>
+        <button type="button" class="btn btn-primary" id="complaint-btn" aria-controls="complaint-section">Complaint text</button>
+        <button type="button" class="btn" id="reset-btn">Process more PDFs</button>
+      </div>
+    </div>
+    <p id="download-status" class="sr-only" role="status"></p>
 
-        <!-- Error messages -->
-        <div id="error-section" style="display:none;">
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Processing Errors</h6>
-                <ul id="error-list" class="mb-0"></ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </div>
+    <div id="notices" style="display: grid; gap: var(--s2); margin-top: var(--s2);"></div>
 
-        <!-- Results summary -->
-        <div id="results-section" style="display:none;">
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-md-3">
-                    <div class="card text-center h-100 summary-card">
-                        <div class="card-body">
-                            <h3 class="mb-0" id="stat-pdfs">0</h3>
-                            <small class="text-muted">PDFs Processed</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card text-center h-100 summary-card">
-                        <div class="card-body">
-                            <h3 class="mb-0" id="stat-employees">0</h3>
-                            <small class="text-muted">Employee Rows</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card text-center h-100 summary-card">
-                        <div class="card-body">
-                            <h3 class="mb-0 text-warning" id="stat-warnings">0</h3>
-                            <small class="text-muted">Validation Flags</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card text-center h-100 summary-card">
-                        <div class="card-body">
-                            <h3 class="mb-0 text-danger" id="stat-errors">0</h3>
-                            <small class="text-muted">Processing Errors</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Download button -->
-            <div class="d-flex gap-2 mb-3">
-                <button id="download-btn" class="btn btn-primary">
-                    <i class="bi bi-download"></i> Download CSV
-                </button>
-                <button id="reset-btn" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-clockwise"></i> Process More PDFs
-                </button>
-            </div>
-
-            <!-- Validation issues -->
-            <div id="validation-section" style="display:none;">
-                <div class="card border-warning mb-4">
-                    <div class="card-header bg-warning-subtle">
-                        <strong><i class="bi bi-exclamation-triangle"></i> Validation Issues</strong>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-2">These rows have data that doesn't pass internal consistency checks. The PDF data is included in the CSV as-is — review these rows manually.</p>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>File</th>
-                                        <th>Employee</th>
-                                        <th>Gross</th>
-                                        <th>Hourly</th>
-                                        <th>Check</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="validation-table-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Results table -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <strong>Extracted Data</strong>
-                    <span class="text-muted small">Scroll horizontally to see all columns</span>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped table-hover mb-0" id="results-table">
-                            <thead></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <div id="dashboard" style="display: grid; gap: var(--s2); margin-top: var(--s2);">
+      <div class="tiles" id="tiles"></div>
+      <section class="card wage" id="wage-panel" aria-label="Prevailing wage"></section>
     </div>
 
-    <footer class="text-center text-muted small py-3 border-top">
-        IDOL Certified Payroll Extractor - PDF to CSV
-    </footer>
+    <section class="card" id="table-section" aria-label="Payroll data" style="margin-top: var(--s2);">
+      <h2>Payroll data</h2>
+      <p class="muted small" style="margin-bottom: var(--s2);">One row per employee per payroll report. Key columns come first, and supporting details follow after the divider. Downloads always contain every row and every column.</p>
+      <div class="table-tools">
+        <label class="sr-only" for="search">Search the table</label>
+        <input type="search" id="search" placeholder="Search employee, contractor, project, body">
+        <div class="seg" role="group" aria-label="Filter by prevailing wage result" id="status-seg"></div>
+        <div class="pills" id="pills"></div>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Payroll data table, scrollable">
+        <table id="results-table"><thead></thead><tbody></tbody></table>
+      </div>
+      <div class="table-foot">
+        <p id="row-count" class="muted small"></p>
+        <button type="button" class="btn" id="show-more" hidden>Show more rows</button>
+      </div>
+    </section>
 
-    <!-- Parser and app logic -->
-    <script>
+    <section class="card" id="complaint-section" aria-labelledby="complaint-h" style="margin-top: var(--s2);" hidden>
+      <h2 id="complaint-h" tabindex="-1">Complaint text</h2>
+      <p class="muted small" style="margin-bottom: var(--s2);">Plain text for a prevailing wage complaint, built from the extracted data. A complaint usually names one contractor, so choose a contractor and project first. Check every figure against the source PDFs, edit the text if you need to, and copy it into the complaint form.</p>
+      <div class="cx-options">
+        <label class="field">Contractor<select id="cx-contractor"></select></label>
+        <label class="field">Project<select id="cx-project"></select></label>
+      </div>
+      <div class="cx-checks">
+        <label><input type="checkbox" id="cx-detail" checked> Include worker-by-worker detail</label>
+        <label><input type="checkbox" id="cx-benefits" checked> Include benefits reported as zero</label>
+        <label><input type="checkbox" id="cx-apprentices"> Include apprentices in the total package finding</label>
+      </div>
+      <p class="muted small">The prevailing rates in this tool are Cook County Laborer rates. Confirm that the workers named in each finding are laborers on a Cook County project. Changing an option rewrites the text below and removes any edits you made. <span id="cx-scope"></span></p>
+      <div class="cx-actions">
+        <button type="button" class="btn btn-primary" id="copy-complaint">Copy text</button>
+        <button type="button" class="btn" id="hide-complaint">Hide</button>
+        <span id="copy-status" class="small muted" role="status"></span>
+      </div>
+      <label class="sr-only" for="complaint-text">Complaint text, editable</label>
+      <textarea id="complaint-text" class="complaint-text" spellcheck="false"></textarea>
+    </section>
+  </section>
+</main>
+
+<footer>LDC LMCC Research Department</footer>
+
+<script>
 /**
  * IDOL Certified Payroll PDF Parser (JavaScript port)
  * =====================================================
@@ -1000,239 +984,1017 @@ if (typeof window !== 'undefined') {
 
 
 </script>
-    <script>
-/**
- * App logic for IDOL Certified Payroll Extractor
- * Handles file upload, processing, table rendering, and CSV download.
- */
 
-(function() {
+<script>
+(function () {
     'use strict';
 
-    // State
-    let currentRows = [];
-    let currentErrors = [];
+    // ----- Cook County Laborer prevailing wage rates (hardcoded from CSV) -----
+    // Each entry: { posted: 'YYYY-MM-DD', totalPackage: <number> }
+    // A rate applies to any payroll period whose START date is on or after
+    // the posted date, up until the next posting.
+    var PREVAILING_WAGES = [
+        { posted: '2024-01-25', totalPackage: 83.09 },
+        { posted: '2024-03-04', totalPackage: 83.09 },
+        { posted: '2024-03-19', totalPackage: 83.09 },
+        { posted: '2024-04-15', totalPackage: 83.09 },
+        { posted: '2024-05-20', totalPackage: 83.09 },
+        { posted: '2024-07-15', totalPackage: 85.69 },
+        { posted: '2024-08-15', totalPackage: 85.69 },
+        { posted: '2024-09-16', totalPackage: 85.69 },
+        { posted: '2024-11-07', totalPackage: 85.69 },
+        { posted: '2024-12-16', totalPackage: 85.69 },
+        { posted: '2025-01-15', totalPackage: 85.69 },
+        { posted: '2025-03-03', totalPackage: 85.69 },
+        { posted: '2025-04-15', totalPackage: 85.69 },
+        { posted: '2025-05-19', totalPackage: 85.69 },
+        { posted: '2025-07-15', totalPackage: 88.34 },
+        { posted: '2025-08-15', totalPackage: 88.34 },
+        { posted: '2025-09-15', totalPackage: 88.34 },
+        { posted: '2025-11-04', totalPackage: 88.34 },
+        { posted: '2025-12-15', totalPackage: 88.34 },
+        { posted: '2026-01-15', totalPackage: 88.34 },
+        { posted: '2026-03-02', totalPackage: 88.34 },
+        { posted: '2026-04-15', totalPackage: 88.34 },
+        { posted: '2026-05-21', totalPackage: 88.34 },
+        { posted: '2026-07-15', totalPackage: 92.11 },
+        { posted: '2026-08-15', totalPackage: 92.11 },
+        { posted: '2026-09-21', totalPackage: 92.11 },
+        { posted: '2026-10-19', totalPackage: 92.11 }
+    ];
+    PREVAILING_WAGES.sort(function (a, b) { return a.posted < b.posted ? -1 : 1; });
 
-    // DOM elements
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const uploadSection = document.getElementById('upload-section');
-    const processingSection = document.getElementById('processing-section');
-    const processingLog = document.getElementById('processing-log');
-    const errorSection = document.getElementById('error-section');
-    const errorList = document.getElementById('error-list');
-    const resultsSection = document.getElementById('results-section');
-    const resultsTableHead = document.querySelector('#results-table thead');
-    const resultsTableBody = document.querySelector('#results-table tbody');
-    const validationSection = document.getElementById('validation-section');
-    const validationTableBody = document.getElementById('validation-table-body');
-    const downloadBtn = document.getElementById('download-btn');
-    const resetBtn = document.getElementById('reset-btn');
-
-    // --- File upload handling ---
-
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('dragover');
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
-        if (files.length > 0) {
-            handleFiles(files);
-        }
-    });
-
-    fileInput.addEventListener('change', () => {
-        const files = Array.from(fileInput.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
-        if (files.length > 0) {
-            handleFiles(files);
-        }
-    });
-
-    // --- Processing ---
-
-    async function handleFiles(files) {
-        // Show processing section
-        uploadSection.style.display = 'none';
-        processingSection.style.display = 'block';
-        resultsSection.style.display = 'none';
-        errorSection.style.display = 'none';
-        processingLog.innerHTML = '';
-
-        currentRows = [];
-        currentErrors = [];
-
-        for (const file of files) {
-            const li = document.createElement('li');
-            li.innerHTML = `<i class="bi bi-file-pdf"></i> Processing <strong>${escapeHtml(file.name)}</strong>...`;
-            processingLog.appendChild(li);
-
-            try {
-                const rows = await IDOLParser.processPdf(file);
-                currentRows.push(...rows);
-                li.innerHTML = `<i class="bi bi-check-circle text-success"></i> ${escapeHtml(file.name)} &mdash; ${rows.length} employee row(s)`;
-            } catch (e) {
-                currentErrors.push({ filename: file.name, error: e.message });
-                li.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${escapeHtml(file.name)} &mdash; Error: ${escapeHtml(e.message)}`;
+    // ----- Effective-date lookup -----
+    // Returns the rate with the latest posted_date that is <= the given date.
+    // Returns null if no rate has been posted yet for that date.
+    function getApplicableWage(isoDate) {
+        if (!isoDate) return null;
+        var applicable = null;
+        for (var i = 0; i < PREVAILING_WAGES.length; i++) {
+            if (PREVAILING_WAGES[i].posted <= isoDate) {
+                applicable = PREVAILING_WAGES[i];
+            } else {
+                break;
             }
         }
-
-        // Show results
-        showResults();
+        return applicable;
     }
 
-    // --- Results rendering ---
+    // ----- Augment one payroll row with prevailing-wage comparison -----
+    function augmentRow(row) {
+        // Uses Payroll Period START date.
+        // To use the END date instead, change the line below to:
+        //   var wage = getApplicableWage(row['Payroll Period End']);
+        var wage = getApplicableWage(row['Payroll Period Start']);
 
-    function showResults() {
-        processingSection.style.display = 'none';
-
-        // Show errors if any
-        if (currentErrors.length > 0) {
-            errorList.innerHTML = currentErrors.map(e =>
-                `<li><strong>${escapeHtml(e.filename)}</strong>: ${escapeHtml(e.error)}</li>`
-            ).join('');
-            errorSection.style.display = 'block';
-        }
-
-        // Update summary stats
-        document.getElementById('stat-pdfs').textContent =
-            new Set(currentRows.map(r => r['Source Filename'])).size;
-        document.getElementById('stat-employees').textContent = currentRows.length;
-
-        const validationIssues = currentRows.filter(r =>
-            !r.gross_check_pass || !r.hours_check_pass || !r.total_comp_check_pass
-        );
-        document.getElementById('stat-warnings').textContent = validationIssues.length;
-        document.getElementById('stat-errors').textContent = currentErrors.length;
-
-        // Render results table
-        renderTable();
-
-        // Render validation issues
-        renderValidationIssues(validationIssues);
-
-        // Show results section
-        resultsSection.style.display = 'block';
-    }
-
-    function renderTable() {
-        // Header
-        const displayColumns = IDOLParser.CSV_COLUMNS.filter(c => c !== 'Source Filename');
-        const headerHtml = '<tr>' + displayColumns.map(col =>
-            `<th>${escapeHtml(formatColumnName(col))}</th>`
-        ).join('') + '</tr>';
-        resultsTableHead.innerHTML = headerHtml;
-
-        // Body
-        const bodyHtml = currentRows.map(row => {
-            const cells = displayColumns.map(col => {
-                let val = row[col];
-                if (val === null || val === undefined || val === '') {
-                    return '<td class="text-muted">&mdash;</td>';
-                }
-                if (typeof val === 'boolean') {
-                    const cls = val ? 'badge-check-pass' : 'badge-check-fail';
-                    const text = val ? 'PASS' : 'FAIL';
-                    return `<td><span class="badge ${cls}">${text}</span></td>`;
-                }
-                if (typeof val === 'number') {
-                    val = val.toFixed(2);
-                }
-                return `<td title="${escapeHtml(String(val))}">${escapeHtml(String(val))}</td>`;
-            });
-            return '<tr>' + cells.join('') + '</tr>';
-        }).join('');
-        resultsTableBody.innerHTML = bodyHtml;
-    }
-
-    function renderValidationIssues(issues) {
-        if (issues.length === 0) {
-            validationSection.style.display = 'none';
+        if (!wage) {
+            row['Applicable Prevailing Wage']   = '';
+            row['Prevailing Wage Posted Date']  = '';
+            row['Comp vs Prevailing Diff']      = '';
+            row['prevailing_wage_check_pass']   = '';
             return;
         }
 
-        const bodyHtml = issues.map(row => {
-            const failedChecks = [];
-            if (!row.gross_check_pass) failedChecks.push('Gross');
-            if (!row.hours_check_pass) failedChecks.push('Hours');
-            if (!row.total_comp_check_pass) failedChecks.push('Total Comp');
+        var prevailingTotal = wage.totalPackage;
+        var calcTotal       = row['CALCULATED_total_compensation_rate'] || 0;
+        var diff            = Math.round((calcTotal - prevailingTotal) * 100) / 100;
 
-            return `<tr>
-                <td>${escapeHtml(row['Source Filename'])}</td>
-                <td>${escapeHtml(row['Name'])}</td>
-                <td>${escapeHtml(String(row['Gross']))}</td>
-                <td>${escapeHtml(String(row['HourlyWageRate']))}</td>
-                <td><span class="badge badge-check-fail">${failedChecks.join(', ')}</span></td>
-            </tr>`;
-        }).join('');
-        validationTableBody.innerHTML = bodyHtml;
-        validationSection.style.display = 'block';
+        row['Applicable Prevailing Wage']   = prevailingTotal;
+        row['Prevailing Wage Posted Date']  = wage.posted;
+        row['Comp vs Prevailing Diff']      = diff;
+        // PASS when the calculated package is at least the prevailing total
+        // (1-cent tolerance for rounding).
+        row['prevailing_wage_check_pass']   = diff >= -0.01;
     }
 
-    // --- Download CSV ---
+    // ----- Hook into the existing parser -----
+    // Wrap IDOLParser.processPdf so every extracted row gets augmented,
+    // without touching the original function.
+    var originalProcessPdf = window.IDOLParser.processPdf;
+    window.IDOLParser.processPdf = async function (file) {
+        var rows = await originalProcessPdf(file);
+        for (var i = 0; i < rows.length; i++) {
+            augmentRow(rows[i]);
+        }
+        return rows;
+    };
 
-    downloadBtn.addEventListener('click', () => {
-        if (currentRows.length === 0) return;
-
-        const csv = IDOLParser.generateCsv(currentRows);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'idol_certified_payroll_combined.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
-
-    // --- Reset ---
-
-    resetBtn.addEventListener('click', () => {
-        currentRows = [];
-        currentErrors = [];
-        fileInput.value = '';
-        uploadSection.style.display = 'block';
-        processingSection.style.display = 'none';
-        resultsSection.style.display = 'none';
-        errorSection.style.display = 'none';
-    });
-
-    // --- Utility functions ---
-
-    function escapeHtml(s) {
-        if (s === null || s === undefined) return '';
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+    // ----- Register the new columns so they show in the table and CSV -----
+    // Inserted just before the existing check columns.
+    var NEW_COLS = [
+        'Applicable Prevailing Wage',
+        'Prevailing Wage Posted Date',
+        'Comp vs Prevailing Diff',
+        'prevailing_wage_check_pass'
+    ];
+    var insertBefore = 'gross_check_pass';
+    var idx = window.IDOLParser.CSV_COLUMNS.indexOf(insertBefore);
+    if (idx >= 0) {
+        window.IDOLParser.CSV_COLUMNS.splice(idx, 0,
+            NEW_COLS[0], NEW_COLS[1], NEW_COLS[2], NEW_COLS[3]);
+    } else {
+        window.IDOLParser.CSV_COLUMNS.push(
+            NEW_COLS[0], NEW_COLS[1], NEW_COLS[2], NEW_COLS[3]);
     }
-
-    function formatColumnName(col) {
-        // Convert camelCase/Snake to readable
-        return col
-            .replace(/_/g, ' ')
-            .replace(/([A-Z])/g, ' $1')
-            .replace(/^./, c => c.toUpperCase())
-            .replace(/\bCALCULATED\b/, 'Calc')
-            .replace(/\bWageRate\b/, 'Wage')
-            .replace(/\bTimWage\b/, 'Tim')
-            .trim();
-    }
-
 })();
+</script>
 
+<script>
+/**
+ * v2 interface layer. Reads results from IDOLParser (unchanged) and handles
+ * the dashboard, table, and CSV/JSON export. It never alters extraction or calculation.
+ */
+(function () {
+    'use strict';
+
+    var $ = function (id) { return document.getElementById(id); };
+    var NOT_FOUND = 'Not found in PDF';
+    var APP_VERSION = '3.0.0';
+    var PAGE = 500;
+
+    // ----- Column presentation -----
+    var PRIMARY = [
+        'Public Body Name', 'Project Number', 'Project Location',
+        'Payroll Period Start', 'Payroll Period End',
+        'Company Name', 'Name', 'Classification',
+        'HourlyWageRate', 'Pension', 'Health', 'Vacation', 'Training',
+        'CALCULATED_total_compensation_rate',
+        'Applicable Prevailing Wage', 'Comp vs Prevailing Diff', 'prevailing_wage_check_pass'
+    ];
+    var SECONDARY = [
+        'Prevailing Wage Posted Date', 'Case Number', 'Source Filename', 'Agency', 'Issuing Agency',
+        'OTWageRate', 'DblTimWage', 'Gross', 'Net', 'J', 'F', 'A',
+        'Contractor Location', 'Contractor Contact Name', 'Contractor Primary Email',
+        'gross_check_pass', 'hours_check_pass', 'total_comp_check_pass'
+    ];
+    var LABELS = {
+        'Public Body Name': 'Public body', 'Project Number': 'Project', 'Project Location': 'Project location',
+        'Payroll Period Start': 'Period start', 'Payroll Period End': 'Period end',
+        'Company Name': 'Contractor', 'Name': 'Employee', 'Classification': 'Classification',
+        'HourlyWageRate': 'Hourly wage', 'Pension': 'Pension', 'Health': 'Health', 'Vacation': 'Vacation', 'Training': 'Training',
+        'CALCULATED_total_compensation_rate': 'Calculated total rate',
+        'Applicable Prevailing Wage': 'Prevailing total rate',
+        'Comp vs Prevailing Diff': 'Difference',
+        'prevailing_wage_check_pass': 'Prevailing wage check',
+        'Prevailing Wage Posted Date': 'Prevailing rate posted', 'Case Number': 'Case number',
+        'Source Filename': 'Source file', 'Agency': 'Agency', 'Issuing Agency': 'Issuing agency',
+        'OTWageRate': 'Overtime rate', 'DblTimWage': 'Double-time rate', 'Gross': 'Gross pay', 'Net': 'Net pay',
+        'J': 'Journeyman', 'F': 'Foreman', 'A': 'Apprentice',
+        'Contractor Location': 'Contractor location', 'Contractor Contact Name': 'Contractor contact',
+        'Contractor Primary Email': 'Contractor email',
+        'gross_check_pass': 'Gross check', 'hours_check_pass': 'Hours check', 'total_comp_check_pass': 'Total rate check'
+    };
+    var MONEY = ['HourlyWageRate', 'Pension', 'Health', 'Vacation', 'Training', 'CALCULATED_total_compensation_rate',
+        'Applicable Prevailing Wage', 'OTWageRate', 'DblTimWage', 'Gross', 'Net'];
+    var DATES = ['Payroll Period Start', 'Payroll Period End', 'Prevailing Wage Posted Date'];
+    var CHECKS = ['gross_check_pass', 'hours_check_pass', 'total_comp_check_pass'];
+
+    // Reorder the shared column list in place so the CSV and the table use one order.
+    // Any column not named above is kept and moved to the end, so nothing can be dropped.
+    (function reorderColumns() {
+        var cols = window.IDOLParser.CSV_COLUMNS;
+        var current = cols.slice();
+        var wanted = PRIMARY.concat(SECONDARY);
+        var next = wanted.filter(function (c) { return current.indexOf(c) >= 0; })
+            .concat(current.filter(function (c) { return wanted.indexOf(c) < 0; }));
+        cols.splice.apply(cols, [0, cols.length].concat(next));
+    })();
+
+    // ----- State -----
+    var state = {
+        rows: [], errors: [], files: [], index: [], limit: PAGE,
+        filters: { status: 'all', body: null, project: null, query: '' },
+        sort: { key: null, dir: 1 }, summary: null
+    };
+
+    // ----- Helpers -----
+    function esc(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function norm(s) { return String(s === null || s === undefined ? '' : s).replace(/\s+/g, ' ').trim(); }
+    function keyOf(s) { return norm(s).toUpperCase(); }
+    function isNum(v) { return typeof v === 'number' && isFinite(v); }
+    function numOrNull(v) { return isNum(v) ? v : null; }
+    function round2(n) { return Math.round(n * 100) / 100; }
+    function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+    function money(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    function isIso(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || ''); }
+    function fmtDate(s) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+        return m ? MONTHS[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1] : (s || '');
+    }
+    function daysBetween(a, b) {
+        var pa = a.split('-'), pb = b.split('-');
+        return Math.round((Date.UTC(+pb[0], +pb[1] - 1, +pb[2]) - Date.UTC(+pa[0], +pa[1] - 1, +pa[2])) / 86400000) + 1;
+    }
+    function hashId(prefix, s) {
+        var h = 5381;
+        for (var i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) | 0; }
+        return prefix + '_' + (h >>> 0).toString(36);
+    }
+    function wageStatus(r) {
+        if (r.prevailing_wage_check_pass === true) return 'meets';
+        if (r.prevailing_wage_check_pass === false) return 'below';
+        return 'norate';
+    }
+    function bodyKey(r) { return keyOf(r['Public Body Name']); }
+    function projectLabel(r) { return norm(r['Project Number']) || norm(r['Project Location']); }
+    function projectKey(r) { return bodyKey(r) + '|' + keyOf(projectLabel(r)); }
+    function yesNo(v) { return v === 'Yes' ? true : (v === 'No' ? false : null); }
+
+    // ----- Upload and processing -----
+    var dropZone = $('drop-zone'), fileInput = $('file-input'), uploadMsg = $('upload-msg');
+
+    if (typeof pdfjsLib === 'undefined') {
+        uploadMsg.textContent = 'The PDF reading library did not load. It is fetched from the internet, so check your connection and reload this page.';
+        uploadMsg.hidden = false;
+    }
+
+    ['dragenter', 'dragover'].forEach(function (ev) {
+        dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+        dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.remove('dragover'); });
+    });
+    dropZone.addEventListener('drop', function (e) { pick(Array.from(e.dataTransfer.files)); });
+    fileInput.addEventListener('change', function () { pick(Array.from(fileInput.files)); });
+
+    function pick(files) {
+        var pdfs = files.filter(function (f) { return f.name.toLowerCase().endsWith('.pdf'); });
+        if (pdfs.length === 0) {
+            uploadMsg.textContent = 'No PDF files were selected. Please choose files that end in .pdf.';
+            uploadMsg.hidden = false;
+            return;
+        }
+        uploadMsg.hidden = true;
+        handleFiles(pdfs);
+    }
+
+    async function handleFiles(files) {
+        $('upload-section').hidden = true;
+        $('results-section').hidden = true;
+        $('processing-section').hidden = false;
+        var log = $('processing-log'), bar = $('processing-progress');
+        log.innerHTML = '';
+        bar.max = files.length; bar.value = 0;
+        state.rows = []; state.errors = []; state.files = [];
+
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            $('processing-title').textContent = 'Reading PDF ' + (i + 1) + ' of ' + files.length;
+            var li = document.createElement('li');
+            li.textContent = 'Reading ' + file.name + '…';
+            log.appendChild(li);
+            try {
+                var rows = await IDOLParser.processPdf(file);
+                state.rows.push.apply(state.rows, rows);
+                state.files.push({ filename: file.name, rowCount: rows.length, error: null });
+                li.textContent = file.name + ': ' + plural(rows.length, 'employee row');
+            } catch (e) {
+                state.errors.push({ filename: file.name, error: e.message });
+                state.files.push({ filename: file.name, rowCount: 0, error: e.message });
+                li.textContent = file.name + ': could not be read (' + e.message + ')';
+            }
+            bar.value = i + 1;
+        }
+        showResults();
+    }
+
+    // ----- Summary -----
+    function summarize(rows) {
+        var bodies = new Map(), projects = new Map(), employees = new Map(), contractors = new Map(), under = new Map();
+        var min = null, max = null;
+        var w = { evaluated: 0, below: 0, meets: 0, norate: 0, shortfalls: [], belowEmployees: new Set() };
+
+        rows.forEach(function (r) {
+            var bk = bodyKey(r), pk = projectKey(r), ek = keyOf(r['Name']), ck = keyOf(r['Company Name']);
+            var s = r['Payroll Period Start'], e = r['Payroll Period End'];
+
+            var b = bodies.get(bk);
+            if (!b) { b = { key: bk, name: norm(r['Public Body Name']), rows: 0, projects: new Set(), employees: new Set() }; bodies.set(bk, b); }
+            b.rows++; b.projects.add(pk); if (ek) b.employees.add(ek);
+
+            var p = projects.get(pk);
+            if (!p) {
+                p = { key: pk, bodyKey: bk, bodyName: norm(r['Public Body Name']), number: norm(r['Project Number']),
+                      location: norm(r['Project Location']), rows: 0, employees: new Set(), contractors: new Set(),
+                      start: null, end: null, below: 0 };
+                projects.set(pk, p);
+            }
+            p.rows++; if (ek) p.employees.add(ek); if (ck) p.contractors.add(ck);
+            if (isIso(s) && (!p.start || s < p.start)) p.start = s;
+            if (isIso(e) && (!p.end || e > p.end)) p.end = e;
+
+            if (ek) {
+                var em = employees.get(ek);
+                if (!em) { em = { key: ek, name: norm(r['Name']), classifications: new Set(), contractors: new Set(), projects: new Set(), rows: 0, start: null, end: null }; employees.set(ek, em); }
+                em.rows++; if (norm(r['Classification'])) em.classifications.add(norm(r['Classification']));
+                if (ck) em.contractors.add(ck); em.projects.add(pk);
+                if (isIso(s) && (!em.start || s < em.start)) em.start = s;
+                if (isIso(e) && (!em.end || e > em.end)) em.end = e;
+            }
+
+            if (ck) {
+                var c = contractors.get(ck);
+                if (!c) { c = { key: ck, name: norm(r['Company Name']), location: '', contact: '', email: '', projects: new Set(), rows: 0 }; contractors.set(ck, c); }
+                c.rows++; c.projects.add(pk);
+                if (!c.location) c.location = norm(r['Contractor Location']);
+                if (!c.contact) c.contact = norm(r['Contractor Contact Name']);
+                if (!c.email) c.email = norm(r['Contractor Primary Email']);
+            }
+
+            if (isIso(s) && (!min || s < min)) min = s;
+            if (isIso(e) && (!max || e > max)) max = e;
+
+            var st = wageStatus(r);
+            if (st === 'norate') { w.norate++; }
+            else {
+                w.evaluated++;
+                if (st === 'meets') w.meets++;
+                else {
+                    w.below++; p.below++;
+                    if (ek) w.belowEmployees.add(ek);
+                    var gap = isNum(r['Comp vs Prevailing Diff']) ? -r['Comp vs Prevailing Diff'] : 0;
+                    w.shortfalls.push(gap);
+                    var uk = ck || '(none)';
+                    var u = under.get(uk);
+                    if (!u) { u = { name: norm(r['Company Name']) || NOT_FOUND, rows: 0, employees: new Set(), max: 0 }; under.set(uk, u); }
+                    u.rows++; if (ek) u.employees.add(ek); if (gap > u.max) u.max = gap;
+                }
+            }
+        });
+
+        var maxGap = w.shortfalls.length ? Math.max.apply(null, w.shortfalls) : 0;
+        var avgGap = w.shortfalls.length ? w.shortfalls.reduce(function (a, b) { return a + b; }, 0) / w.shortfalls.length : 0;
+        return { bodies: bodies, projects: projects, employees: employees, contractors: contractors, under: under,
+                 min: min, max: max, wage: w, maxGap: round2(maxGap), avgGap: round2(avgGap) };
+    }
+
+    // ----- Dashboard -----
+    function renderDashboard() {
+        var S = state.summary;
+        var bodies = Array.from(S.bodies.values()).sort(function (a, b) { return b.rows - a.rows; });
+        var projects = Array.from(S.projects.values()).sort(function (a, b) { return b.rows - a.rows; });
+
+        function listItem(kind, item, label, count) {
+            var pressed = state.filters[kind] === item.key;
+            return '<li><button type="button" class="link-btn" data-filter="' + kind + '" data-key="' + esc(item.key) + '" aria-pressed="' + pressed + '">' +
+                esc(label) + '</button><span class="count">' + esc(count) + '</span></li>';
+        }
+        var bodyItems = bodies.map(function (b) {
+            return listItem('body', b, b.name || NOT_FOUND, plural(b.rows, 'row'));
+        }).join('');
+        var projItems = projects.map(function (p) {
+            var label = (p.number || p.location || NOT_FOUND);
+            return listItem('project', p, label, plural(p.employees.size, 'employee'));
+        }).join('');
+
+        var period = S.min && S.max
+            ? '<div class="value range">' + esc(fmtDate(S.min)) + ' to ' + esc(fmtDate(S.max)) + '</div><div class="muted small">' + plural(daysBetween(S.min, S.max), 'day') + ' covered</div>'
+            : '<div class="value range">Not found</div><div class="muted small">No payroll dates were read from the PDFs.</div>';
+
+        $('tiles').innerHTML =
+            '<article class="tile"><div class="label">Public bodies</div><div class="value">' + S.bodies.size + '</div>' +
+            '<ul aria-label="Public bodies. Choose one to filter the table." tabindex="0">' + bodyItems + '</ul></article>' +
+            '<article class="tile"><div class="label">Projects</div><div class="value">' + S.projects.size + '</div>' +
+            '<ul aria-label="Projects. Choose one to filter the table." tabindex="0">' + projItems + '</ul></article>' +
+            '<article class="tile"><div class="label">Employees</div><div class="value">' + S.employees.size + '</div>' +
+            '<div class="muted small">Unique names, across ' + plural(state.rows.length, 'payroll row') + '</div></article>' +
+            '<article class="tile"><div class="label">Time period</div>' + period + '</article>';
+
+        // Prevailing wage panel
+        var w = S.wage, panel = $('wage-panel');
+        panel.className = 'card wage ' + (w.below > 0 ? 'below' : (w.evaluated > 0 ? 'clear' : ''));
+        var headline, body = '';
+        if (w.evaluated === 0) {
+            headline = 'No payroll rows could be compared with a prevailing wage.';
+        } else if (w.below === 0) {
+            headline = 'All ' + plural(w.evaluated, 'compared payroll row') + ' meet or exceed the prevailing total rate.';
+        } else {
+            headline = '<span class="neg">' + w.below + '</span> of ' + w.evaluated + ' compared payroll rows are below the prevailing total rate.';
+            var uRows = Array.from(S.under.values()).sort(function (a, b) { return b.rows - a.rows; });
+            body = '<div class="facts">' +
+                fact('Employees affected', S.wage.belowEmployees.size) +
+                fact('Contractors affected', S.under.size) +
+                fact('Largest shortfall per hour', money(S.maxGap)) +
+                fact('Average shortfall per hour', money(S.avgGap)) + '</div>' +
+                '<div class="mini-wrap" tabindex="0" role="region" aria-label="Underpayment by contractor"><table><thead><tr>' +
+                '<th><span class="th-plain">Contractor</span></th><th class="num"><span class="th-plain">Rows below</span></th>' +
+                '<th class="num"><span class="th-plain">Employees</span></th><th class="num"><span class="th-plain">Largest shortfall per hour</span></th></tr></thead><tbody>' +
+                uRows.map(function (u) {
+                    return '<tr><td class="text">' + esc(u.name) + '</td><td class="num">' + u.rows + '</td><td class="num">' + u.employees.size + '</td><td class="num neg">' + money(round2(u.max)) + '</td></tr>';
+                }).join('') + '</tbody></table></div>';
+        }
+        var notes = '';
+        if (w.norate > 0) {
+            notes += '<p class="small"><span class="badge norate">No rate</span> ' + plural(w.norate, 'row') +
+                ' could not be compared because no prevailing rate is on file for the payroll start date.' +
+                ' <button type="button" class="link-btn" data-status="norate">Show these rows</button></p>';
+        }
+        notes += '<p class="muted small">Comparison: the calculated total rate (hourly wage plus pension, health, vacation, and training) against the Cook County Laborer total package posted on or before the payroll period start date. A row is flagged when it falls short by more than one cent.</p>';
+
+        panel.innerHTML =
+            '<div class="wage-head"><div><h2>Prevailing wage</h2><p class="headline">' + headline + '</p></div>' +
+            (w.below > 0 ? '<button type="button" class="btn" data-status="below">Show these rows in the table</button>' : '') + '</div>' +
+            body + notes;
+    }
+    function fact(label, value) { return '<div class="fact"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div></div>'; }
+
+    // ----- Table -----
+    function typeOf(col) {
+        if (MONEY.indexOf(col) >= 0) return 'money';
+        if (DATES.indexOf(col) >= 0) return 'date';
+        if (col === 'Comp vs Prevailing Diff') return 'diff';
+        if (col === 'prevailing_wage_check_pass') return 'wage';
+        if (CHECKS.indexOf(col) >= 0) return 'check';
+        return 'text';
+    }
+    function isSecondary(col) { return PRIMARY.indexOf(col) < 0; }
+
+    function renderHead() {
+        var cols = IDOLParser.CSV_COLUMNS, firstSec = true;
+        $('results-table').tHead.innerHTML = '<tr>' + cols.map(function (col) {
+            var t = typeOf(col), cls = [];
+            if (t === 'money' || t === 'diff') cls.push('num');
+            if (isSecondary(col)) { cls.push('secondary'); if (firstSec) { cls.push('sec-start'); firstSec = false; } }
+            var dir = state.sort.key === col ? (state.sort.dir === 1 ? 'ascending' : 'descending') : 'none';
+            var arrow = dir === 'ascending' ? ' ▲' : (dir === 'descending' ? ' ▼' : '');
+            return '<th scope="col" class="' + cls.join(' ') + '" aria-sort="' + dir + '"><button type="button" class="th-btn" data-sort="' + esc(col) + '">' +
+                esc(LABELS[col] || col) + '<span aria-hidden="true">' + arrow + '</span></button></th>';
+        }).join('') + '</tr>';
+    }
+
+    function cellHtml(r, col, secStart) {
+        var v = r[col], t = typeOf(col), cls = [];
+        if (isSecondary(col)) cls.push('secondary');
+        if (secStart) cls.push('sec-start');
+        var inner, empty = (v === null || v === undefined || v === '');
+        if (t === 'wage') {
+            var st = wageStatus(r);
+            var txt = st === 'below' ? 'FAIL' : (st === 'meets' ? 'PASS' : 'No rate');
+            return '<td class="' + cls.join(' ') + '"><span class="badge ' + st + '">' + txt + '</span></td>';
+        }
+        if (empty) { cls.push('empty'); if (t === 'money' || t === 'diff') cls.push('num'); return '<td class="' + cls.join(' ') + '">&mdash;</td>'; }
+        if (t === 'money') { cls.push('num'); inner = isNum(v) ? money(v) : esc(v); }
+        else if (t === 'diff') {
+            cls.push('num');
+            if (isNum(v)) { if (v < -0.01) cls.push('neg'); inner = (v < 0 ? '\u2212' : (v > 0 ? '+' : '')) + money(Math.abs(v)); } else inner = esc(v);
+        }
+        else if (t === 'date') inner = esc(fmtDate(v));
+        else if (t === 'check') { return '<td class="' + cls.join(' ') + '"><span class="badge ' + (v === true ? 'meets' : 'below') + '">' + (v === true ? 'PASS' : 'FAIL') + '</span></td>'; }
+        else { cls.push('text'); inner = esc(v); }
+        var title = t === 'text' ? ' title="' + esc(v) + '"' : '';
+        return '<td class="' + cls.join(' ') + '"' + title + '>' + inner + '</td>';
+    }
+
+    function filteredRows() {
+        var f = state.filters, q = f.query.trim().toLowerCase();
+        var out = state.index.filter(function (it) {
+            var r = it.row;
+            if (f.status !== 'all' && wageStatus(r) !== f.status) return false;
+            if (f.body !== null && bodyKey(r) !== f.body) return false;
+            if (f.project !== null && projectKey(r) !== f.project) return false;
+            if (q && it.text.indexOf(q) < 0) return false;
+            return true;
+        }).map(function (it) { return it.row; });
+        var k = state.sort.key;
+        if (k) {
+            var d = state.sort.dir;
+            out = out.map(function (r, i) { return [r, i]; }).sort(function (a, b) {
+                var x = a[0][k], y = b[0][k];
+                var xe = x === '' || x === null || x === undefined, ye = y === '' || y === null || y === undefined;
+                if (xe && ye) return a[1] - b[1];
+                if (xe) return 1; if (ye) return -1;
+                var c = (isNum(x) && isNum(y)) ? x - y : (typeof x === 'boolean' ? (x === y ? 0 : (x ? 1 : -1)) : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: 'base' }));
+                return c !== 0 ? c * d : a[1] - b[1];
+            }).map(function (p) { return p[0]; });
+        }
+        return out;
+    }
+
+    function renderTable() {
+        renderHead();
+        var cols = IDOLParser.CSV_COLUMNS;
+        var firstSec = cols.filter(isSecondary)[0];
+        var rows = filteredRows();
+        var shown = rows.slice(0, state.limit);
+        $('results-table').tBodies[0].innerHTML = shown.map(function (r) {
+            return '<tr' + (wageStatus(r) === 'below' ? ' class="below"' : '') + '>' +
+                cols.map(function (c) { return cellHtml(r, c, c === firstSec); }).join('') + '</tr>';
+        }).join('');
+        $('row-count').textContent = rows.length === 0
+            ? 'No rows match the current filters.'
+            : 'Showing ' + shown.length + ' of ' + rows.length + ' rows' + (rows.length !== state.rows.length ? ' (filtered from ' + state.rows.length + ')' : '') + '.';
+        var more = $('show-more');
+        more.hidden = shown.length >= rows.length;
+        more.textContent = 'Show ' + Math.min(PAGE, rows.length - shown.length) + ' more rows';
+        renderControls();
+    }
+
+    function renderControls() {
+        var f = state.filters, S = state.summary, w = S.wage;
+        var opts = [['all', 'All rows (' + state.rows.length + ')'], ['below', 'Below prevailing (' + w.below + ')'], ['norate', 'No rate (' + w.norate + ')']];
+        $('status-seg').innerHTML = opts.map(function (o) {
+            return '<button type="button" data-status="' + o[0] + '" aria-pressed="' + (f.status === o[0]) + '">' + esc(o[1]) + '</button>';
+        }).join('');
+        var pills = [];
+        if (f.body !== null) { var b = S.bodies.get(f.body); pills.push(['body', 'Public body: ' + ((b && b.name) || NOT_FOUND)]); }
+        if (f.project !== null) { var p = S.projects.get(f.project); pills.push(['project', 'Project: ' + ((p && (p.number || p.location)) || NOT_FOUND)]); }
+        $('pills').innerHTML = pills.map(function (x) {
+            return '<span class="pill">' + esc(x[1]) + '<button type="button" data-clear="' + x[0] + '" aria-label="Remove filter: ' + esc(x[1]) + '">&times;</button></span>';
+        }).join('');
+        // Keep dashboard list buttons in sync
+        document.querySelectorAll('[data-filter]').forEach(function (btn) {
+            btn.setAttribute('aria-pressed', String(state.filters[btn.getAttribute('data-filter')] === btn.getAttribute('data-key')));
+        });
+    }
+
+    // ----- Events -----
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest('button');
+        if (!t) return;
+        if (t.hasAttribute('data-filter')) {
+            var kind = t.getAttribute('data-filter'), key = t.getAttribute('data-key');
+            state.filters[kind] = state.filters[kind] === key ? null : key;
+            if (kind === 'body') state.filters.project = null;
+            state.limit = PAGE; renderTable();
+            if (state.filters[kind] !== null) scrollToTable();
+        } else if (t.hasAttribute('data-status')) {
+            state.filters.status = t.getAttribute('data-status'); state.limit = PAGE; renderTable();
+            if (!t.closest('#status-seg')) scrollToTable();
+        } else if (t.hasAttribute('data-clear')) {
+            state.filters[t.getAttribute('data-clear')] = null; state.limit = PAGE; renderTable();
+        } else if (t.hasAttribute('data-sort')) {
+            var k = t.getAttribute('data-sort');
+            if (state.sort.key === k) { if (state.sort.dir === 1) state.sort.dir = -1; else state.sort.key = null; }
+            else { state.sort.key = k; state.sort.dir = 1; }
+            renderTable();
+            var again = document.querySelector('[data-sort="' + k.replace(/"/g, '\\"') + '"]'); if (again) again.focus();
+        }
+    });
+    $('search').addEventListener('input', function (e) { state.filters.query = e.target.value; state.limit = PAGE; renderTable(); });
+    $('show-more').addEventListener('click', function () { state.limit += PAGE; renderTable(); });
+    function scrollToTable() {
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        $('table-section').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    // ----- Show results -----
+    function showResults() {
+        $('processing-section').hidden = true;
+        $('results-section').hidden = false;
+        state.filters = { status: 'all', body: null, project: null, query: '' };
+        state.sort = { key: null, dir: 1 }; state.limit = PAGE;
+        $('search').value = '';
+        $('complaint-section').hidden = true; cxReady = false;
+        var cols = IDOLParser.CSV_COLUMNS;
+        state.index = state.rows.map(function (r) {
+            return { row: r, text: cols.map(function (c) { var v = r[c]; return (v === null || v === undefined || typeof v === 'boolean') ? '' : String(v); }).join(' ').toLowerCase() };
+        });
+        state.summary = summarize(state.rows);
+
+        var ok = state.files.filter(function (f) { return !f.error; }).length;
+        $('results-summary').textContent = plural(ok, 'PDF') + ' read, ' + plural(state.rows.length, 'payroll row') + ' extracted.';
+
+        var notes = '';
+        if (state.errors.length) {
+            notes += '<div class="notice danger" role="alert"><strong>' + plural(state.errors.length, 'PDF') + ' could not be read:</strong><ul>' +
+                state.errors.map(function (e) { return '<li>' + esc(e.filename) + ': ' + esc(e.error) + '</li>'; }).join('') + '</ul></div>';
+        }
+        var empty = state.files.filter(function (f) { return !f.error && f.rowCount === 0; });
+        if (empty.length) {
+            notes += '<div class="notice"><strong>No employee rows were found in:</strong><ul>' +
+                empty.map(function (f) { return '<li>' + esc(f.filename) + '</li>'; }).join('') + '</ul></div>';
+        }
+        $('notices').innerHTML = notes;
+
+        var hasRows = state.rows.length > 0;
+        $('dashboard').hidden = !hasRows; $('table-section').hidden = !hasRows;
+        $('download-csv').disabled = !hasRows; $('download-json').disabled = !hasRows; $('complaint-btn').disabled = !hasRows;
+        if (hasRows) { renderDashboard(); renderTable(); }
+        window.scrollTo(0, 0);
+    }
+
+    // ----- Export -----
+    function download(text, type, name, label) {
+        var blob = new Blob([text], { type: type });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        $('download-status').textContent = label + ' downloaded: ' + name;
+    }
+    $('download-csv').addEventListener('click', function () {
+        if (!state.rows.length) return;
+        download(IDOLParser.generateCsv(state.rows), 'text/csv;charset=utf-8;', 'idol_certified_payroll_combined.csv', 'CSV');
+    });
+    $('download-json').addEventListener('click', function () {
+        if (!state.rows.length) return;
+        download(JSON.stringify(buildJson(), null, 2), 'application/json;charset=utf-8;', 'idol_certified_payroll_combined.json', 'JSON');
+    });
+
+    function setToArray(s) { return Array.from(s); }
+
+    function buildJson() {
+        var S = summarize(state.rows);
+        var rows = state.rows;
+        var id = {
+            body: function (r) { return hashId('body', bodyKey(r)); },
+            project: function (r) { return hashId('proj', projectKey(r)); },
+            contractor: function (r) { return keyOf(r['Company Name']) ? hashId('con', keyOf(r['Company Name'])) : null; },
+            employee: function (r) { return keyOf(r['Name']) ? hashId('emp', keyOf(r['Name'])) : null; }
+        };
+        function nn(s) { var x = norm(s); return x === '' ? null : x; }
+
+        // Prevailing rates actually applied in this data set
+        var rateMap = new Map();
+        rows.forEach(function (r) {
+            if (r['Prevailing Wage Posted Date'] && isNum(r['Applicable Prevailing Wage'])) rateMap.set(r['Prevailing Wage Posted Date'], r['Applicable Prevailing Wage']);
+        });
+        var rates = Array.from(rateMap.entries()).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; })
+            .map(function (e) { return { postedDate: e[0], totalPackage: e[1] }; });
+
+        var publicBodies = Array.from(S.bodies.values()).map(function (b) {
+            var projs = Array.from(S.projects.values()).filter(function (p) { return p.bodyKey === b.key; });
+            var start = null, end = null;
+            projs.forEach(function (p) { if (p.start && (!start || p.start < start)) start = p.start; if (p.end && (!end || p.end > end)) end = p.end; });
+            return { id: hashId('body', b.key), name: nn(b.name), projectIds: projs.map(function (p) { return hashId('proj', p.key); }),
+                     employeeCount: b.employees.size, payrollRecordCount: b.rows, periodStart: start, periodEnd: end };
+        });
+        var projects = Array.from(S.projects.values()).map(function (p) {
+            return { id: hashId('proj', p.key), publicBodyId: hashId('body', p.bodyKey), number: nn(p.number), location: nn(p.location),
+                     contractorIds: setToArray(p.contractors).map(function (k) { return hashId('con', k); }),
+                     employeeCount: p.employees.size, payrollRecordCount: p.rows, periodStart: p.start, periodEnd: p.end,
+                     rowsBelowPrevailingWage: p.below };
+        });
+        var contractors = Array.from(S.contractors.values()).map(function (c) {
+            return { id: hashId('con', c.key), name: nn(c.name), location: nn(c.location),
+                     contact: { name: nn(c.contact), email: nn(c.email) },
+                     projectIds: setToArray(c.projects).map(function (k) { return hashId('proj', k); }), payrollRecordCount: c.rows };
+        });
+        var employees = Array.from(S.employees.values()).map(function (e) {
+            return { id: hashId('emp', e.key), name: nn(e.name), classifications: setToArray(e.classifications),
+                     contractorIds: setToArray(e.contractors).map(function (k) { return hashId('con', k); }),
+                     projectIds: setToArray(e.projects).map(function (k) { return hashId('proj', k); }),
+                     payrollRecordCount: e.rows, firstPeriodStart: e.start, lastPeriodEnd: e.end };
+        });
+
+        var records = rows.map(function (r, i) {
+            var st = wageStatus(r);
+            var comp = numOrNull(r['CALCULATED_total_compensation_rate']);
+            var checks = { grossCheckPassed: r.gross_check_pass === true, hoursCheckPassed: r.hours_check_pass === true, totalRateCheckPassed: r.total_comp_check_pass === true };
+            return {
+                id: 'rec_' + String(i + 1).padStart(5, '0'),
+                source: { filename: nn(r['Source Filename']), caseNumber: nn(r['Case Number']), agency: nn(r['Agency']), issuingAgency: nn(r['Issuing Agency']) },
+                publicBodyId: id.body(r), publicBodyName: nn(r['Public Body Name']),
+                projectId: id.project(r), projectNumber: nn(r['Project Number']), projectLocation: nn(r['Project Location']),
+                contractorId: id.contractor(r), contractorName: nn(r['Company Name']),
+                employeeId: id.employee(r),
+                payrollPeriod: { start: isIso(r['Payroll Period Start']) ? r['Payroll Period Start'] : null, end: isIso(r['Payroll Period End']) ? r['Payroll Period End'] : null },
+                employee: { name: nn(r['Name']), classification: nn(r['Classification']),
+                            isJourneyman: yesNo(r['J']), isForeman: yesNo(r['F']), isApprentice: yesNo(r['A']) },
+                hourlyRates: { straightTime: numOrNull(r['HourlyWageRate']), overtime: numOrNull(r['OTWageRate']), doubleTime: numOrNull(r['DblTimWage']) },
+                fringeBenefits: { pension: numOrNull(r['Pension']), health: numOrNull(r['Health']), vacation: numOrNull(r['Vacation']), training: numOrNull(r['Training']) },
+                calculatedTotalRate: comp,
+                earnings: { gross: numOrNull(r['Gross']), net: numOrNull(r['Net']) },
+                prevailingWage: {
+                    status: st === 'below' ? 'below_prevailing' : (st === 'meets' ? 'meets_prevailing' : 'no_rate_on_file'),
+                    applicableTotalRate: numOrNull(r['Applicable Prevailing Wage']),
+                    ratePostedDate: isIso(r['Prevailing Wage Posted Date']) ? r['Prevailing Wage Posted Date'] : null,
+                    difference: numOrNull(r['Comp vs Prevailing Diff']),
+                    shortfallPerHour: (st === 'below' && isNum(r['Comp vs Prevailing Diff'])) ? round2(-r['Comp vs Prevailing Diff']) : null
+                },
+                extractionChecks: Object.assign({ allPassed: checks.grossCheckPassed && checks.hoursCheckPassed && checks.totalRateCheckPassed }, checks),
+                contractorDetails: { location: nn(r['Contractor Location']), contactName: nn(r['Contractor Contact Name']), primaryEmail: nn(r['Contractor Primary Email']) }
+            };
+        });
+
+        var anyFlag = rows.filter(function (r) { return !(r.gross_check_pass && r.hours_check_pass && r.total_comp_check_pass); }).length;
+        var w = S.wage;
+        return {
+            schemaVersion: '1.0.0',
+            generator: { name: 'IDOL Certified Payroll Extractor', version: APP_VERSION },
+            generatedAt: new Date().toISOString(),
+            notes: [
+                'One payroll record is one employee on one certified payroll report (one row of the CSV).',
+                'Dates are ISO 8601 (YYYY-MM-DD). Money values are US dollars, and rates are dollars per hour. Missing values are null.',
+                'Entity ids (publicBodyId, projectId, contractorId, employeeId) are derived from names, so spelling differences create separate entities. Employee ids come from names only because no SSN is extracted.',
+                'The project identifier is the value read from the "Project" field on the form, with the project location kept alongside it.',
+                'prevailingWage.status compares calculatedTotalRate with the Cook County Laborer total package posted on or before the payroll period start date. A record is below_prevailing when it falls short by more than $0.01.',
+                'extractionChecks record internal consistency tests on the extracted numbers. They are informational and were not used to remove or change any record.'
+            ],
+            sources: {
+                files: state.files.map(function (f) { return { filename: f.filename, payrollRecordCount: f.rowCount, error: f.error }; })
+            },
+            summary: {
+                counts: { sourceFiles: state.files.length, publicBodies: S.bodies.size, projects: S.projects.size, contractors: S.contractors.size,
+                          employees: S.employees.size, payrollRecords: rows.length },
+                period: { start: S.min, end: S.max, days: (S.min && S.max) ? daysBetween(S.min, S.max) : null },
+                prevailingWage: {
+                    recordsCompared: w.evaluated, recordsBelow: w.below, recordsMeeting: w.meets, recordsWithoutRate: w.norate,
+                    employeesBelow: w.belowEmployees.size, contractorsBelow: S.under.size,
+                    largestShortfallPerHour: w.below ? S.maxGap : null, averageShortfallPerHour: w.below ? S.avgGap : null
+                },
+                extractionChecks: { recordsWithAnyFlag: anyFlag }
+            },
+            prevailingWageReference: {
+                description: 'Cook County Laborer total package rates applied in this data set',
+                basis: 'Payroll period start date', toleranceDollars: 0.01, ratesApplied: rates
+            },
+            publicBodies: publicBodies,
+            projects: projects,
+            contractors: contractors,
+            employees: employees,
+            payrollRecords: records
+        };
+    }
+
+    // ----- Complaint text -----
+    var MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var BENEFITS = [['Pension', 'pension'], ['Health', 'health'], ['Vacation', 'vacation'], ['Training', 'training']];
+    var cxReady = false, cxTimer = null;
+
+    function longDate(s) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+        return m ? MONTHS_LONG[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1] : 'a date not found in the PDF';
+    }
+    function dateSpan(a, b) {
+        if (!a && !b) return 'dates not found in the PDFs';
+        return a === b ? longDate(a) : longDate(a) + ' to ' + longDate(b);
+    }
+    function spanPhrase(a, b) {
+        if (!a && !b) return 'with dates not found in the PDFs';
+        return a === b ? 'on ' + longDate(a) : 'from ' + longDate(a) + ' to ' + longDate(b);
+    }
+    function listOf(items) {
+        if (items.length <= 1) return items.join('');
+        if (items.length === 2) return items[0] + ' and ' + items[1];
+        return items.slice(0, -1).join(', ') + ', and ' + items[items.length - 1];
+    }
+    function moneyRange(a, b) { return a === b ? money(a) : money(a) + ' to ' + money(b); }
+    function uniq(a) { return Array.from(new Set(a)); }
+    function minOf(a) { return a.length ? Math.min.apply(null, a) : 0; }
+    function maxOf(a) { return a.length ? Math.max.apply(null, a) : 0; }
+    function isoMin(a) { a = a.filter(isIso).sort(); return a.length ? a[0] : null; }
+    function isoMax(a) { a = a.filter(isIso).sort(); return a.length ? a[a.length - 1] : null; }
+    function sv(n, one, many) { return n === 1 ? one : many; }
+    function entries(n) { return plural(n, 'payroll entry', 'payroll entries'); }
+    function isApprentice(r) { return r['A'] === 'Yes'; }
+    function zeroBenefits(r) {
+        return BENEFITS.filter(function (b) { var v = r[b[0]]; return !(isNum(v) && v > 0); }).map(function (b) { return b[1]; });
+    }
+    function cKey(r) { return keyOf(r['Company Name']) || '(none)'; }
+    function cName(r) { return norm(r['Company Name']) || 'Contractor name not found in PDF'; }
+    function projectText(r) {
+        var n = norm(r['Project Number']), l = norm(r['Project Location']);
+        return n && l ? n + ' (' + l + ')' : (n || l || 'not found in PDF');
+    }
+    function workerKey(r) { return keyOf(r['Name']) || '(unnamed)'; }
+    function workerCount(rs) { return new Set(rs.map(workerKey)).size; }
+    function byWorker(rs) {
+        var m = new Map();
+        rs.forEach(function (r) {
+            var k = workerKey(r), w = m.get(k);
+            if (!w) { w = { name: norm(r['Name']) || 'Name not found in PDF', cls: new Set(), rows: [] }; m.set(k, w); }
+            if (norm(r['Classification'])) w.cls.add(norm(r['Classification']));
+            w.rows.push(r);
+        });
+        return Array.from(m.values()).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    }
+    function gapOf(r) { return round2(-r['Comp vs Prevailing Diff']); }
+
+    function buildComplaint(rows, opt) {
+        var finding = function (r) { return wageStatus(r) === 'below' && (opt.apprentices || !isApprentice(r)); };
+        var hasZero = function (r) { return opt.benefits && zeroBenefits(r).length > 0; };
+        var now = new Date();
+        var todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+        var groups = new Map();
+        rows.forEach(function (r) {
+            var k = cKey(r);
+            if (!groups.has(k)) groups.set(k, { name: cName(r), rows: [] });
+            groups.get(k).rows.push(r);
+        });
+        var gs = Array.from(groups.values()).map(function (g) {
+            g.below = g.rows.filter(finding);
+            g.zero = g.rows.filter(hasZero);
+            return g;
+        });
+        var withFindings = gs.filter(function (g) { return g.below.length || g.zero.length; })
+            .sort(function (a, b) { return (b.below.length + b.zero.length) - (a.below.length + a.zero.length) || a.name.localeCompare(b.name); });
+        var without = gs.filter(function (g) { return !(g.below.length || g.zero.length); });
+
+        var allBelow = rows.filter(finding), allZero = rows.filter(hasZero);
+        var out = [];
+        out.push('Prevailing Wage Act: Certified Payroll Review\nPrepared ' + longDate(todayIso));
+
+        // Summary
+        var sum = [];
+        sum.push('Summary');
+        sum.push('This review covers ' + entries(rows.length) + ' for ' + plural(workerCount(rows), 'worker') + ' of ' + plural(gs.length, 'contractor') +
+            ' on ' + plural(uniq(rows.map(projectKey)).length, 'project') + ' for ' +
+            plural(uniq(rows.map(bodyKey)).length, 'public body', 'public bodies') + '. The records cover payroll periods ' +
+            spanPhrase(isoMin(rows.map(function (r) { return r['Payroll Period Start']; })), isoMax(rows.map(function (r) { return r['Payroll Period End']; }))) + '.');
+        var f = [];
+        if (allBelow.length) f.push(entries(allBelow.length) + ' for ' + plural(workerCount(allBelow), 'worker') + ' ' + sv(allBelow.length, 'shows', 'show') + ' a total package below the prevailing total.');
+        if (allZero.length) f.push(entries(allZero.length) + ' for ' + plural(workerCount(allZero), 'worker') + ' ' + sv(allZero.length, 'shows', 'show') + ' at least one benefit reported at zero or left blank.');
+        if (!f.length) f.push('This review found no payroll entries with a total package below the prevailing total' + (opt.benefits ? ' and none with a benefit reported at zero or left blank.' : '.'));
+        sum.push(f.join(' '));
+        if (withFindings.length > 1) sum.push('The findings are described by contractor below.');
+        if (without.length && withFindings.length) sum.push('No findings for: ' + listOf(without.map(function (g) { return g.name; })) + '.');
+        out.push(sum.join('\n'));
+
+        // Contractor sections
+        withFindings.forEach(function (g) {
+            var rs = g.rows, L = [];
+            var bodies = uniq(rs.map(function (r) { return norm(r['Public Body Name']); }).filter(Boolean));
+            var projects = uniq(rs.map(projectText));
+            var periods = uniq(rs.map(function (r) { return r['Payroll Period Start'] + '|' + r['Payroll Period End']; }));
+            L.push(g.name);
+            L.push((bodies.length > 1 ? 'Public bodies: ' : 'Public body: ') + (bodies.length ? bodies.join('; ') : 'not found in PDF'));
+            L.push((projects.length > 1 ? 'Projects: ' : 'Project: ') + projects.join('; '));
+            L.push('Payroll periods reviewed: ' + dateSpan(isoMin(rs.map(function (r) { return r['Payroll Period Start']; })), isoMax(rs.map(function (r) { return r['Payroll Period End']; }))) +
+                ' (' + plural(periods.length, 'payroll period') + ')');
+            L.push('Records reviewed: ' + entries(rs.length) + ' for ' + plural(workerCount(rs), 'worker'));
+            out.push(L.join('\n'));
+
+            if (g.below.length) {
+                var gaps = g.below.map(gapOf);
+                var avg = round2(gaps.reduce(function (a, b) { return a + b; }, 0) / gaps.length);
+                var T = ['Total package below the prevailing rate'];
+                var p = entries(g.below.length) + ' for ' + plural(workerCount(g.below), 'worker') + (g.below.length === 1 ? ' shows' : ' show') +
+                    ' a total package below the prevailing total. ';
+                p += minOf(gaps) === maxOf(gaps)
+                    ? 'The shortfall is ' + money(maxOf(gaps)) + ' per hour.'
+                    : 'The shortfall is ' + moneyRange(minOf(gaps), maxOf(gaps)) + ' per hour, and the average shortfall is ' + money(avg) + ' per hour.';
+                T.push(p);
+                if (opt.detail) {
+                    T.push('Worker detail:');
+                    byWorker(g.below).forEach(function (w, i) {
+                        var calc = w.rows.map(function (r) { return r['CALCULATED_total_compensation_rate']; }).filter(isNum);
+                        var prev = w.rows.map(function (r) { return r['Applicable Prevailing Wage']; }).filter(isNum);
+                        var gp = w.rows.map(gapOf);
+                        var cls = Array.from(w.cls);
+                        T.push((i + 1) + '. ' + w.name + (cls.length ? ', ' + listOf(cls) : '') + ': ' + entries(w.rows.length) + ', ' +
+                            dateSpan(isoMin(w.rows.map(function (r) { return r['Payroll Period Start']; })), isoMax(w.rows.map(function (r) { return r['Payroll Period End']; }))) +
+                            '. Total package of ' + moneyRange(minOf(calc), maxOf(calc)) + ' per hour, against a prevailing total of ' + moneyRange(minOf(prev), maxOf(prev)) +
+                            ' per hour. Shortfall of ' + moneyRange(minOf(gp), maxOf(gp)) + ' per hour.');
+                    });
+                }
+                out.push(T.join('\n'));
+            }
+
+            if (g.zero.length) {
+                var Z = ['Benefits reported as zero'];
+                var counts = BENEFITS.map(function (b) {
+                    return { name: b[1], n: g.zero.filter(function (r) { return zeroBenefits(r).indexOf(b[1]) >= 0; }).length };
+                }).filter(function (c) { return c.n > 0; });
+                var zp = 'At least one benefit is reported at $0.00 or left blank in ' + entries(g.zero.length) + ' for ' + plural(workerCount(g.zero), 'worker') + ': ' +
+                    listOf(counts.map(function (c) { return c.name + ' (' + plural(c.n, 'entry', 'entries') + ')'; })) + '.';
+                var a = g.zero.filter(finding).length, b = g.zero.filter(function (r) { return wageStatus(r) === 'meets'; }).length, parts = [];
+                if (a) parts.push(a + ' also ' + sv(a, 'falls', 'fall') + ' below the prevailing total package');
+                if (b) parts.push(b + ' ' + sv(b, 'meets', 'meet') + ' the prevailing total package');
+                if (parts.length) zp += ' Of these entries, ' + parts.join(' and ') + '.';
+                Z.push(zp);
+                if (opt.detail) {
+                    Z.push('Worker detail:');
+                    byWorker(g.zero).forEach(function (w, i) {
+                        var bs = BENEFITS.map(function (x) { return x[1]; }).filter(function (n) {
+                            return w.rows.some(function (r) { return zeroBenefits(r).indexOf(n) >= 0; });
+                        });
+                        var cls = Array.from(w.cls);
+                        Z.push((i + 1) + '. ' + w.name + (cls.length ? ', ' + listOf(cls) : '') + ': ' + entries(w.rows.length) + ' with ' + listOf(bs) + ' at zero or blank.');
+                    });
+                }
+                out.push(Z.join('\n'));
+            }
+        });
+
+        // Statutory basis (text taken from 820 ILCS 130/2, 3, 4, 5, and 11)
+        out.push([
+            'Statutory basis\nSection 3 of the Illinois Prevailing Wage Act (820 ILCS 130/3) requires that laborers, workers, and mechanics employed on public works be paid not less than the general prevailing rate of hourly wages for work of a similar character in the locality. Section 2 (820 ILCS 130/2) defines that rate as the hourly cash wage plus fringe benefits for training and apprenticeship programs, health and welfare, insurance, vacations, and pensions. Section 4(d) (820 ILCS 130/4) makes it mandatory for the contractor and each subcontractor to pay not less than the specified rates.',
+            'Section 5(a) (820 ILCS 130/5) requires contractors to keep records of each worker\u2019s hourly wage rate and hourly fringe benefit rates, and to file a certified payroll each month with a signed statement that the hourly rate paid to each worker is not less than the general prevailing rate.',
+            'Under Section 11 (820 ILCS 130/11), a worker who is paid less than the prevailing rate has a right of action for the difference. The contractor or subcontractor is also liable to the Department of Labor for 20% of the underpayment, or 50% in a second or later action. At the worker\u2019s request, the Department may take an assignment of the wage claim. An action must be brought within 5 years of the failure to pay.'
+        ].join('\n\n'));
+
+        // Method
+        var M = ['Method'];
+        M.push('Each payroll entry is one worker in one certified payroll period. The calculated total package is the hourly wage rate plus the reported pension, health, vacation, and training rates. The prevailing total is the Cook County Laborer total package posted by the Illinois Department of Labor with the latest posting date on or before the first day of the payroll period. An entry is counted as below the prevailing total when the calculated total package is lower by more than $0.01.');
+        var rateMap = new Map();
+        rows.forEach(function (r) {
+            var t = r['Applicable Prevailing Wage'], d = r['Prevailing Wage Posted Date'];
+            if (isNum(t) && isIso(d)) { var e = rateMap.get(t) || { first: d, last: d }; if (d < e.first) e.first = d; if (d > e.last) e.last = d; rateMap.set(t, e); }
+        });
+        var rateList = Array.from(rateMap.entries()).sort(function (a, b) { return a[1].first < b[1].first ? -1 : 1; }).map(function (e) {
+            return money(e[0]) + ' (posted ' + (e[1].first === e[1].last ? longDate(e[1].first) : longDate(e[1].first) + ' to ' + longDate(e[1].last)) + ')';
+        });
+        if (rateList.length) M.push('Prevailing totals applied to these records: ' + listOf(rateList) + '.');
+        var appr = rows.filter(function (r) { return wageStatus(r) === 'below' && isApprentice(r); }).length;
+        if (appr) {
+            M.push(opt.apprentices
+                ? 'The total package finding includes ' + entries(appr) + ' for ' + sv(appr, 'a worker', 'workers') + ' marked as ' + sv(appr, 'an apprentice', 'apprentices') + ' on the payroll. The journeyman prevailing total was applied to ' + sv(appr, 'it', 'them') + ', and an apprentice wage rate may be lower.'
+                : 'The payroll marks the worker as an apprentice in ' + entries(appr) + ' that ' + sv(appr, 'falls', 'fall') + ' below the journeyman prevailing total. ' + sv(appr, 'This entry is', 'These entries are') + ' left out of the total package finding because an apprentice wage rate may be lower. Apprentices must still receive the same fringe benefits as journeymen, so apprentices are included in the benefits finding.');
+        }
+        var norate = rows.filter(function (r) { return wageStatus(r) === 'norate'; }).length;
+        if (norate) M.push(entries(norate) + ' had no prevailing total on file for the payroll period start date and ' + sv(norate, 'was', 'were') + ' not compared.');
+        M.push('This review compares hourly rates only. It does not calculate back wages, which depend on the hours each worker worked.');
+        out.push(M.join('\n'));
+
+        // Source files
+        var seen = new Set(), S = ['Source files'];
+        rows.forEach(function (r) {
+            var line = '- ' + norm(r['Source Filename']) + (norm(r['Case Number']) ? ' (case number ' + norm(r['Case Number']) + ')' : '');
+            if (!seen.has(line)) { seen.add(line); S.push(line); }
+        });
+        out.push(S.join('\n'));
+        return out.join('\n\n') + '\n';
+    }
+
+    // Complaint panel wiring
+    function cxScoped() {
+        var c = $('cx-contractor').value, p = $('cx-project').value;
+        return state.rows.filter(function (r) { return (c === 'all' || cKey(r) === c) && (p === 'all' || projectKey(r) === p); });
+    }
+    function cxFillContractors() {
+        var m = new Map();
+        state.rows.forEach(function (r) {
+            var k = cKey(r), g = m.get(k);
+            if (!g) { g = { key: k, name: cName(r), below: 0 }; m.set(k, g); }
+            if (wageStatus(r) === 'below') g.below++;
+        });
+        var gs = Array.from(m.values()).sort(function (a, b) { return b.below - a.below || a.name.localeCompare(b.name); });
+        $('cx-contractor').innerHTML = '<option value="all">All contractors (' + gs.length + ')</option>' + gs.map(function (g) {
+            return '<option value="' + esc(g.key) + '">' + esc(g.name) + ' (' + g.below + ' below)</option>';
+        }).join('');
+        cxFillProjects();
+    }
+    function cxFillProjects() {
+        var c = $('cx-contractor').value, m = new Map();
+        state.rows.forEach(function (r) { if (c === 'all' || cKey(r) === c) m.set(projectKey(r), projectText(r)); });
+        var opts = Array.from(m.entries());
+        $('cx-project').innerHTML = '<option value="all">All projects (' + opts.length + ')</option>' + opts.map(function (e) {
+            return '<option value="' + esc(e[0]) + '">' + esc(e[1]) + '</option>';
+        }).join('');
+    }
+    function cxFit() {
+        var ta = $('complaint-text');
+        ta.style.height = 'auto';
+        ta.style.height = Math.max(320, Math.min(ta.scrollHeight + 4, Math.round(window.innerHeight * 0.75))) + 'px';
+    }
+    function cxRender() {
+        var rs = cxScoped();
+        $('complaint-text').value = buildComplaint(rs, {
+            detail: $('cx-detail').checked, benefits: $('cx-benefits').checked, apprentices: $('cx-apprentices').checked
+        });
+        $('cx-scope').textContent = 'Scope: ' + entries(rs.length) + '.';
+        $('copy-status').textContent = '';
+        cxFit();
+    }
+    $('complaint-btn').addEventListener('click', function () {
+        if (!state.rows.length) return;
+        if (!cxReady) { cxFillContractors(); cxRender(); cxReady = true; }
+        $('complaint-section').hidden = false;
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        $('complaint-section').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+        $('complaint-h').focus({ preventScroll: true });
+        cxFit();
+    });
+    $('hide-complaint').addEventListener('click', function () { $('complaint-section').hidden = true; $('complaint-btn').focus(); });
+    $('cx-contractor').addEventListener('change', function () { cxFillProjects(); cxRender(); });
+    ['cx-project', 'cx-detail', 'cx-benefits', 'cx-apprentices'].forEach(function (id) { $(id).addEventListener('change', cxRender); });
+    $('complaint-text').addEventListener('input', cxFit);
+    $('copy-complaint').addEventListener('click', function () {
+        var ta = $('complaint-text'), btn = $('copy-complaint');
+        function ok() {
+            $('copy-status').textContent = 'Copied to the clipboard.';
+            btn.textContent = 'Copied';
+            clearTimeout(cxTimer); cxTimer = setTimeout(function () { btn.textContent = 'Copy text'; }, 2500);
+        }
+        function fallback() {
+            ta.focus(); ta.select();
+            try { if (document.execCommand('copy')) { ok(); return; } } catch (e) { /* fall through */ }
+            $('copy-status').textContent = 'Copy did not work. The text is selected, so press Ctrl+C (or Command+C).';
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(ok, fallback);
+        else fallback();
+    });
+
+    // ----- Reset -----
+    $('reset-btn').addEventListener('click', function () {
+        state.rows = []; state.errors = []; state.files = []; state.index = [];
+        fileInput.value = '';
+        uploadMsg.hidden = true;
+        $('results-section').hidden = true;
+        $('complaint-section').hidden = true; cxReady = false;
+        $('processing-section').hidden = true;
+        $('upload-section').hidden = false;
+        window.scrollTo(0, 0);
+    });
+})();
 </script>
 </body>
 </html>
