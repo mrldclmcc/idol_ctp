@@ -31,7 +31,7 @@ h1, h2, h3, p { margin: 0; }
 h1 { font-size: var(--fs-lg); font-weight: 700; }
 h2 { font-size: var(--fs-md); font-weight: 700; }
 a { color: var(--primary); }
-:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
 .app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: var(--s2) var(--s3); display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: baseline; justify-content: space-between; }
 .muted { color: var(--text-muted); }
@@ -40,11 +40,11 @@ main { max-width: 1600px; margin: 0 auto; padding: var(--s3); display: grid; gri
 main > section, #dashboard, #table-section { min-width: 0; max-width: 100%; }
 footer { padding: var(--s3); text-align: center; color: var(--text-muted); font-size: var(--fs-sm); border-top: 1px solid var(--border); }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s3); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 0; padding: var(--s3); }
 .card > h2 { margin-bottom: var(--s2); }
 
 /* Buttons */
-.btn { font: 600 var(--fs-sm)/1 var(--font); padding: 12px var(--s2); border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 40px; }
+.btn { font: 600 var(--fs-sm)/1 var(--font); padding: 12px var(--s2); border-radius: 0; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 40px; }
 .btn:hover { border-color: var(--primary); }
 .btn:active { background: var(--bg); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -55,12 +55,12 @@ footer { padding: var(--s3); text-align: center; color: var(--text-muted); font-
 .link-btn[aria-pressed="true"] { font-weight: 700; color: var(--text); }
 
 /* Upload */
-.drop-zone { display: block; border: 2px dashed var(--border); border-radius: 8px; background: var(--surface); padding: var(--s6) var(--s3); text-align: center; cursor: pointer; }
+.drop-zone { display: block; border: 2px dashed var(--border); border-radius: 0; background: var(--surface); padding: var(--s6) var(--s3); text-align: center; cursor: pointer; }
 .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: var(--bg); }
-.drop-zone:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.drop-zone:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }
 .drop-zone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .drop-zone .title { font-size: var(--fs-lg); font-weight: 700; display: block; margin-bottom: var(--s1); }
-.notice { padding: var(--s2); border-radius: 8px; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.notice { padding: var(--s2); border-radius: 0; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
 .notice.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 .notice ul { margin: var(--s1) 0 0; padding-left: var(--s3); }
 
@@ -74,13 +74,14 @@ progress { width: 100%; height: 8px; margin: var(--s2) 0; accent-color: var(--pr
 
 /* Dashboard */
 .tiles { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: var(--s3); display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 0; padding: var(--s3); display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
 .tile .label { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
 .tile .value { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; }
 .tile .value.range { font-size: var(--fs-lg); }
 .tile ul { list-style: none; margin: var(--s1) 0 0; padding: var(--s1) 0 0; border-top: 1px solid var(--border); max-height: 168px; overflow: auto; display: grid; gap: var(--s1); font-size: var(--fs-sm); }
 .tile ul li { display: flex; justify-content: space-between; gap: var(--s1); }
 .tile ul .count { color: var(--text-muted); white-space: nowrap; }
+.tile-stack { display: grid; gap: var(--s2); align-self: start; }
 
 .wage { display: grid; gap: var(--s2); }
 .wage.below { border-left: 8px solid var(--danger); }
@@ -91,12 +92,12 @@ progress { width: 100%; height: 8px; margin: var(--s2) 0; accent-color: var(--pr
 .facts { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .fact .label { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
 .fact .value { font-size: var(--fs-lg); font-weight: 700; }
-.mini-wrap { overflow: auto; max-height: 280px; border: 1px solid var(--border); border-radius: 8px; }
+.mini-wrap { overflow: auto; max-height: 280px; border: 1px solid var(--border); border-radius: 0; }
 
 /* Tables */
 table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 th, td { padding: var(--s1) var(--s2); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
-thead th { position: sticky; top: 0; background: var(--surface); z-index: 2; border-bottom: 2px solid var(--border); font-weight: 700; padding: 0; }
+thead th { position: sticky; top: 0; background: var(--stripe); z-index: 2; border-bottom: 2px solid var(--border); font-weight: 700; padding: 0; }
 thead th .th-btn, thead th .th-plain { display: block; width: 100%; padding: var(--s1) var(--s2); font: inherit; font-weight: 700; color: var(--text); background: none; border: 0; text-align: left; cursor: pointer; }
 thead th .th-plain { cursor: default; }
 thead th .th-btn:hover { background: var(--bg); }
@@ -107,35 +108,36 @@ td.empty { color: var(--text-muted); }
 td.neg { color: var(--danger); font-weight: 600; }
 th.secondary, td.secondary { color: var(--text-muted); }
 th.sec-start, td.sec-start { border-left: 2px solid var(--border); }
-tbody tr:nth-child(even) td { background: var(--stripe); }
 tbody tr:hover td { background: var(--hover); }
-tr.below td, tr.below:nth-child(even) td { background: var(--danger-bg); }
+tr.below td { background: var(--danger-bg); }
 tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
-.badge { display: inline-block; padding: 2px var(--s1); border-radius: 4px; font-weight: 600; border: 1px solid var(--border); }
-.badge.below { color: var(--danger); background: var(--danger-bg); border-color: var(--danger); }
-.badge.meets { color: var(--pass-text); background: var(--pass-bg); border-color: var(--pass-bg); }
-.badge.norate { color: var(--warn); background: var(--warn-bg); border-color: var(--warn); }
-.badge.p { color: var(--text-muted); background: var(--bg); border-color: var(--border); }
-.badge.np { color: var(--warn); background: var(--warn-bg); border-color: var(--warn); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 0; font-weight: 700; border: 0; font-size: 12px; letter-spacing: .04em; line-height: 1.5; }
+.badge.below { color: var(--on-primary); background: var(--danger); }
+.badge.meets { color: var(--on-primary); background: var(--ok); }
+.badge.norate { color: var(--on-primary); background: var(--warn); }
+.badge.p { color: var(--text); background: var(--border); }
+.badge.np { color: var(--on-primary); background: var(--warn); }
 
 .table-tools { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
-.table-tools input[type=search] { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); min-width: 260px; min-height: 40px; }
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.table-tools input[type=search] { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-width: 260px; min-height: 40px; }
+.table-tools .filter-field { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
+.table-tools select { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; cursor: pointer; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 0; overflow: hidden; }
 .seg button { font: 600 var(--fs-sm)/1 var(--font); padding: 12px var(--s2); background: var(--surface); color: var(--text); border: 0; border-right: 1px solid var(--border); cursor: pointer; }
 .seg button:last-child { border-right: 0; }
 .seg button:hover { background: var(--bg); }
 .seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
 .pills { display: flex; flex-wrap: wrap; gap: var(--s1); }
-.pill { display: inline-flex; gap: var(--s1); align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: var(--fs-sm); }
+.pill { display: inline-flex; gap: var(--s1); align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 0; padding: 4px 12px; font-size: var(--fs-sm); }
 .pill button { font: inherit; background: none; border: 0; color: var(--text); cursor: pointer; padding: 0 4px; }
-.table-scroll { max-width: 100%; overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 8px; }
+.table-scroll { max-width: 100%; overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 0; }
 .table-foot { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: space-between; margin-top: var(--s2); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Complaint text */
 .cx-options { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: end; margin-bottom: var(--s2); }
 .cx-options label.field { display: grid; gap: 4px; font-size: var(--fs-sm); font-weight: 600; }
-.cx-options select { font: inherit; padding: 8px var(--s1); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); min-height: 40px; max-width: 100%; }
+.cx-options select { font: inherit; padding: 8px var(--s1); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; max-width: 100%; }
 .cx-checks { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin-bottom: var(--s2); font-size: var(--fs-sm); }
 .cx-checks label { display: inline-flex; gap: var(--s1); align-items: center; cursor: pointer; }
 .cx-checks input { width: 16px; height: 16px; accent-color: var(--primary); }
@@ -144,7 +146,7 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
 .cx-letter-head { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; justify-content: space-between; max-width: 100ch; margin-bottom: var(--s1); }
 .cx-letter-head h3 { font-size: var(--fs-md); font-weight: 700; }
 .cx-notes { margin: 0 0 var(--s2); padding-left: var(--s3); }
-.complaint-text { display: block; width: 100%; max-width: 100ch; min-height: 320px; padding: var(--s2); font: 400 var(--fs-md)/1.6 var(--font); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; resize: vertical; white-space: pre-wrap; }
+.complaint-text { display: block; width: 100%; max-width: 100ch; min-height: 320px; padding: var(--s2); font: 400 var(--fs-md)/1.6 var(--font); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 0; resize: vertical; white-space: pre-wrap; }
 </style>
 </head>
 <body>
@@ -194,10 +196,13 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
 
     <section class="card" id="table-section" aria-label="Payroll data" style="margin-top: var(--s2);">
       <h2>Payroll data</h2>
-      <p class="muted small" style="margin-bottom: var(--s2);">One row per employee per payroll report. Key columns come first, and supporting details follow after the divider. Downloads always contain every row and every column.</p>
+      <p class="muted small" style="margin-bottom: var(--s2);">One row per employee per payroll report. Key columns come first, and supporting details follow after the divider. CSV export respects the classification filter; JSON export always contains every row and every column.</p>
       <div class="table-tools">
         <label class="sr-only" for="search">Search the table</label>
         <input type="search" id="search" placeholder="Search employee, contractor, project, body">
+        <label class="filter-field" for="classification-filter">Classification
+          <select id="classification-filter"><option value="all">All classifications</option></select>
+        </label>
         <div class="seg" role="group" aria-label="Filter by prevailing wage result" id="status-seg"></div>
         <div class="pills" id="pills"></div>
       </div>
@@ -1274,7 +1279,7 @@ if (typeof window !== 'undefined') {
     // ----- State -----
     var state = {
         rows: [], errors: [], files: [], index: [], limit: PAGE,
-        filters: { status: 'all', body: null, project: null, query: '' },
+        filters: { status: 'all', body: null, project: null, query: '', classification: 'all', contractor: null },
         sort: { key: null, dir: 1 }, summary: null
     };
 
@@ -1314,7 +1319,31 @@ if (typeof window !== 'undefined') {
     function bodyKey(r) { return keyOf(r['Public Body Name']); }
     function projectLabel(r) { return norm(r['Project Number']) || norm(r['Project Location']); }
     function projectKey(r) { return bodyKey(r) + '|' + keyOf(projectLabel(r)); }
+    function contractorKey(r) { return keyOf(r['Company Name']); }
     function yesNo(v) { return v === 'Yes' ? true : (v === 'No' ? false : null); }
+    // Normalizes a raw classification string for filtering and grouping.
+    // Any classification containing "labor" (case-insensitive) collapses to LABORER,
+    // so "Laborer", "COMMON LABORER", "LABORER ALL", "Skilled Laborer" all roll up.
+    // Empty/missing classifications group under (NO CLASSIFICATION).
+    function normalizeClassification(raw) {
+        var s = String(raw === null || raw === undefined ? '' : raw).replace(/\s+/g, ' ').trim().toUpperCase();
+        if (!s) return '(NO CLASSIFICATION)';
+        if (s.indexOf('LABOR') >= 0) return 'LABORER';
+        return s;
+    }
+    // Deterministic signature of one file's extracted data, used for duplicate
+    // detection. Every row property except Source Filename is included, rows are
+    // sorted by Name, and field keys are sorted, so two identical PDFs always
+    // produce identical signatures regardless of upload order or filename.
+    function fileSignature(rows) {
+        var sorted = rows.slice().sort(function (a, b) {
+            return String(a['Name'] || '').localeCompare(String(b['Name'] || ''), undefined, { numeric: true, sensitivity: 'base' });
+        });
+        return sorted.map(function (r) {
+            var keys = Object.keys(r).filter(function (k) { return k !== 'Source Filename'; }).sort();
+            return keys.map(function (k) { return k + ':' + String(r[k] === undefined ? '' : r[k]); }).join('|');
+        }).join('\n');
+    }
 
     // ----- Upload and processing -----
     var dropZone = $('drop-zone'), fileInput = $('file-input'), uploadMsg = $('upload-msg');
@@ -1352,6 +1381,11 @@ if (typeof window !== 'undefined') {
         log.innerHTML = '';
         bar.max = files.length; bar.value = 0;
         state.rows = []; state.errors = []; state.files = [];
+        state.duplicates = []; state.conflicts = []; state.noCaseNumber = [];
+        // caseNumber (normalized) -> array of { filename, signature } for each
+        // variant seen so far. Used to detect duplicates (same signature) and
+        // conflicts (same case number, different signature).
+        var seenByCase = new Map();
 
         for (var i = 0; i < files.length; i++) {
             var file = files[i];
@@ -1361,9 +1395,46 @@ if (typeof window !== 'undefined') {
             log.appendChild(li);
             try {
                 var rows = await IDOLParser.processPdf(file);
-                state.rows.push.apply(state.rows, rows);
-                state.files.push({ filename: file.name, rowCount: rows.length, error: null });
-                li.textContent = file.name + ': ' + plural(rows.length, 'employee row');
+                var caseNum = rows.length ? norm(rows[0]['Case Number']) : '';
+                var sig = rows.length ? fileSignature(rows) : '';
+
+                if (!rows.length) {
+                    // No rows extracted — nothing to dedup, record as empty
+                    state.files.push({ filename: file.name, rowCount: 0, error: null });
+                    li.textContent = file.name + ': no employee rows found';
+                } else if (!caseNum) {
+                    // No readable Case Number — can't check for duplicates
+                    state.rows.push.apply(state.rows, rows);
+                    state.files.push({ filename: file.name, rowCount: rows.length, error: null });
+                    state.noCaseNumber.push({ filename: file.name, rowCount: rows.length });
+                    li.textContent = file.name + ': ' + plural(rows.length, 'employee row') + ' (no Case Number read, not checked for duplicates)';
+                } else if (seenByCase.has(caseNum)) {
+                    // Case Number already seen — compare signatures
+                    var variants = seenByCase.get(caseNum);
+                    var match = null;
+                    for (var v = 0; v < variants.length; v++) {
+                        if (variants[v].signature === sig) { match = variants[v]; break; }
+                    }
+                    if (match) {
+                        // Same case number AND same data — duplicate
+                        state.duplicates.push({ filename: file.name, caseNumber: caseNum, originalFilename: match.filename });
+                        state.files.push({ filename: file.name, rowCount: 0, error: null, skippedAsDuplicate: true, duplicateOf: match.filename });
+                        li.textContent = file.name + ': duplicate of ' + match.filename + ' (Case ' + caseNum + '), skipped';
+                    } else {
+                        // Same case number, different data — conflict, keep for review
+                        variants.push({ filename: file.name, signature: sig });
+                        state.rows.push.apply(state.rows, rows);
+                        state.files.push({ filename: file.name, rowCount: rows.length, error: null, conflictWithSameCaseNumber: true, conflictsWith: variants[0].filename });
+                        state.conflicts.push({ filename: file.name, caseNumber: caseNum, conflictsWith: variants[0].filename });
+                        li.textContent = file.name + ': ' + plural(rows.length, 'employee row') + ' — CONFLICT (same Case ' + caseNum + ' as ' + variants[0].filename + ', different data), kept for review';
+                    }
+                } else {
+                    // New case number — record and keep
+                    seenByCase.set(caseNum, [{ filename: file.name, signature: sig }]);
+                    state.rows.push.apply(state.rows, rows);
+                    state.files.push({ filename: file.name, rowCount: rows.length, error: null });
+                    li.textContent = file.name + ': ' + plural(rows.length, 'employee row');
+                }
             } catch (e) {
                 state.errors.push({ filename: file.name, error: e.message });
                 state.files.push({ filename: file.name, rowCount: 0, error: e.message });
@@ -1462,6 +1533,10 @@ if (typeof window !== 'undefined') {
             var label = (p.number || p.location || NOT_FOUND);
             return listItem('project', p, label, plural(p.employees.size, 'employee'));
         }).join('');
+        var contractors = Array.from(S.contractors.values()).sort(function (a, b) { return b.rows - a.rows; });
+        var contractorItems = contractors.map(function (c) {
+            return listItem('contractor', c, c.name || NOT_FOUND, plural(c.rows, 'row'));
+        }).join('');
 
         var period = S.min && S.max
             ? '<div class="value range">' + esc(fmtDate(S.min)) + ' to ' + esc(fmtDate(S.max)) + '</div><div class="muted small">' + plural(daysBetween(S.min, S.max), 'day') + ' covered</div>'
@@ -1472,9 +1547,13 @@ if (typeof window !== 'undefined') {
             '<ul aria-label="Public bodies. Choose one to filter the table." tabindex="0">' + bodyItems + '</ul></article>' +
             '<article class="tile"><div class="label">Projects</div><div class="value">' + S.projects.size + '</div>' +
             '<ul aria-label="Projects. Choose one to filter the table." tabindex="0">' + projItems + '</ul></article>' +
+            '<article class="tile"><div class="label">Contractors</div><div class="value">' + S.contractors.size + '</div>' +
+            '<ul aria-label="Contractors. Choose one to filter the table." tabindex="0">' + contractorItems + '</ul></article>' +
+            '<div class="tile-stack">' +
             '<article class="tile"><div class="label">Employees</div><div class="value">' + S.employees.size + '</div>' +
             '<div class="muted small">Unique names, across ' + plural(state.rows.length, 'payroll row') + '</div></article>' +
-            '<article class="tile"><div class="label">Time period</div>' + period + '</article>';
+            '<article class="tile"><div class="label">Time period</div>' + period + '</article>' +
+            '</div>';
 
         // Prevailing wage panel
         var w = S.wage, panel = $('wage-panel');
@@ -1500,15 +1579,16 @@ if (typeof window !== 'undefined') {
                 }).join('') + '</tbody></table></div>';
         }
         var notes = '';
+        var cfRows = classificationFilteredRows();
         // NP-sourced rows note
-        var npSourced = state.rows.filter(function (r) { return r.np_sourced === true; }).length;
+        var npSourced = cfRows.filter(function (r) { return r.np_sourced === true; }).length;
         if (npSourced > 0) {
             notes += '<p class="small"><span class="badge np">NP</span> ' + plural(npSourced, 'row') +
                 ' ' + (npSourced === 1 ? 'uses wage data from the NP (non-prevailing) line' : 'use wage data from the NP (non-prevailing) line') +
                 ' because the P line was blank. The contractor may have misclassified the work; the figures shown are from the NP line.</p>';
         }
         // Redacted-name note
-        var redacted = state.rows.filter(function (r) { return r.name_redacted === true; }).length;
+        var redacted = cfRows.filter(function (r) { return r.name_redacted === true; }).length;
         if (redacted > 0) {
             notes += '<p class="small"><span class="badge norate">Redacted</span> ' + plural(redacted, 'row') +
                 ' ' + (redacted === 1 ? 'has a redacted employee name' : 'have redacted employee names') +
@@ -1582,6 +1662,14 @@ if (typeof window !== 'undefined') {
         return '<td class="' + cls.join(' ') + '"' + title + '>' + inner + '</td>';
     }
 
+    // Rows filtered ONLY by classification. Used for the dashboard numbers and CSV export.
+    // The JSON export and complaint text always use state.rows directly and are not affected.
+    function classificationFilteredRows() {
+        var f = state.filters.classification;
+        if (f === 'all') return state.rows;
+        return state.rows.filter(function (r) { return normalizeClassification(r['Classification']) === f; });
+    }
+
     function filteredRows() {
         var f = state.filters, q = f.query.trim().toLowerCase();
         var out = state.index.filter(function (it) {
@@ -1589,6 +1677,8 @@ if (typeof window !== 'undefined') {
             if (f.status !== 'all' && wageStatus(r) !== f.status) return false;
             if (f.body !== null && bodyKey(r) !== f.body) return false;
             if (f.project !== null && projectKey(r) !== f.project) return false;
+            if (f.contractor !== null && contractorKey(r) !== f.contractor) return false;
+            if (f.classification !== 'all' && normalizeClassification(r['Classification']) !== f.classification) return false;
             if (q && it.text.indexOf(q) < 0) return false;
             return true;
         }).map(function (it) { return it.row; });
@@ -1635,6 +1725,7 @@ if (typeof window !== 'undefined') {
         var pills = [];
         if (f.body !== null) { var b = S.bodies.get(f.body); pills.push(['body', 'Public body: ' + ((b && b.name) || NOT_FOUND)]); }
         if (f.project !== null) { var p = S.projects.get(f.project); pills.push(['project', 'Project: ' + ((p && (p.number || p.location)) || NOT_FOUND)]); }
+        if (f.contractor !== null) { var c = S.contractors.get(f.contractor); pills.push(['contractor', 'Contractor: ' + ((c && c.name) || NOT_FOUND)]); }
         $('pills').innerHTML = pills.map(function (x) {
             return '<span class="pill">' + esc(x[1]) + '<button type="button" data-clear="' + x[0] + '" aria-label="Remove filter: ' + esc(x[1]) + '">&times;</button></span>';
         }).join('');
@@ -1642,6 +1733,30 @@ if (typeof window !== 'undefined') {
         document.querySelectorAll('[data-filter]').forEach(function (btn) {
             btn.setAttribute('aria-pressed', String(state.filters[btn.getAttribute('data-filter')] === btn.getAttribute('data-key')));
         });
+    }
+
+    // Builds the classification filter dropdown from the data. Counts reflect ALL rows
+    // (not the current filter), so the user can see the full distribution at a glance.
+    // LABORER sorts first (it is the primary use case), then alphabetical, with
+    // (NO CLASSIFICATION) last.
+    function populateClassificationFilter() {
+        var counts = new Map();
+        state.rows.forEach(function (r) {
+            var nc = normalizeClassification(r['Classification']);
+            counts.set(nc, (counts.get(nc) || 0) + 1);
+        });
+        var entries = Array.from(counts.entries()).sort(function (a, b) {
+            if (a[0] === 'LABORER' && b[0] !== 'LABORER') return -1;
+            if (b[0] === 'LABORER' && a[0] !== 'LABORER') return 1;
+            if (a[0] === '(NO CLASSIFICATION)' && b[0] !== '(NO CLASSIFICATION)') return 1;
+            if (b[0] === '(NO CLASSIFICATION)' && a[0] !== '(NO CLASSIFICATION)') return -1;
+            return a[0] < b[0] ? -1 : (a[0] > b[0] ? 1 : 0);
+        });
+        var sel = $('classification-filter');
+        sel.innerHTML = '<option value="all">All classifications (' + state.rows.length + ')</option>' +
+            entries.map(function (e) {
+                return '<option value="' + esc(e[0]) + '"' + (state.filters.classification === e[0] ? ' selected' : '') + '>' + esc(e[0]) + ' (' + e[1] + ')</option>';
+            }).join('');
     }
 
     // ----- Events -----
@@ -1668,6 +1783,20 @@ if (typeof window !== 'undefined') {
         }
     });
     $('search').addEventListener('input', function (e) { state.filters.query = e.target.value; state.limit = PAGE; renderTable(); });
+    $('classification-filter').addEventListener('change', function (e) {
+        state.filters.classification = e.target.value;
+        // Clear body/project/contractor table filters since the dashboard (and its
+        // list of bodies/projects/contractors) is about to reflect a different row set.
+        state.filters.body = null;
+        state.filters.project = null;
+        state.filters.contractor = null;
+        state.limit = PAGE;
+        // Recompute the dashboard summary from the classification-filtered rows so
+        // tiles, wage panel, and body/project lists all reflect the filtered data.
+        state.summary = summarize(classificationFilteredRows());
+        renderDashboard();
+        renderTable();
+    });
     $('show-more').addEventListener('click', function () { state.limit += PAGE; renderTable(); });
     function scrollToTable() {
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1678,25 +1807,43 @@ if (typeof window !== 'undefined') {
     function showResults() {
         $('processing-section').hidden = true;
         $('results-section').hidden = false;
-        state.filters = { status: 'all', body: null, project: null, query: '' };
+        state.filters = { status: 'all', body: null, project: null, query: '', classification: 'all', contractor: null };
         state.sort = { key: null, dir: 1 }; state.limit = PAGE;
         $('search').value = '';
+        $('classification-filter').value = 'all';
         $('complaint-section').hidden = true; cxReady = false;
         var cols = IDOLParser.CSV_COLUMNS;
         state.index = state.rows.map(function (r) {
             return { row: r, text: cols.map(function (c) { var v = r[c]; return (v === null || v === undefined || typeof v === 'boolean') ? '' : String(v); }).join(' ').toLowerCase() };
         });
-        state.summary = summarize(state.rows);
+        state.summary = summarize(classificationFilteredRows());
+        populateClassificationFilter();
 
         var ok = state.files.filter(function (f) { return !f.error; }).length;
-        $('results-summary').textContent = plural(ok, 'PDF') + ' read, ' + plural(state.rows.length, 'payroll row') + ' extracted.';
+        var dupCount = state.duplicates.length;
+        var summaryText = plural(ok, 'PDF') + ' read, ' + plural(state.rows.length, 'payroll row') + ' extracted';
+        if (dupCount) summaryText += ' (' + plural(dupCount, 'duplicate CTP') + ' skipped)';
+        summaryText += '.';
+        $('results-summary').textContent = summaryText;
 
         var notes = '';
         if (state.errors.length) {
             notes += '<div class="notice danger" role="alert"><strong>' + plural(state.errors.length, 'PDF') + ' could not be read:</strong><ul>' +
                 state.errors.map(function (e) { return '<li>' + esc(e.filename) + ': ' + esc(e.error) + '</li>'; }).join('') + '</ul></div>';
         }
-        var empty = state.files.filter(function (f) { return !f.error && f.rowCount === 0; });
+        if (state.conflicts.length) {
+            notes += '<div class="notice danger" role="alert"><strong>' + plural(state.conflicts.length, 'CTP') + ' with the same Case Number but different extracted data (both kept for review):</strong><ul>' +
+                state.conflicts.map(function (c) { return '<li>' + esc(c.filename) + ' (Case ' + esc(c.caseNumber) + ') — same Case Number as ' + esc(c.conflictsWith) + ', but the extracted rows differ. Check both in the table and keep the correct one.</li>'; }).join('') + '</ul></div>';
+        }
+        if (state.duplicates.length) {
+            notes += '<div class="notice"><strong>' + plural(state.duplicates.length, 'duplicate CTP') + ' skipped (same Case Number and same data as an earlier file):</strong><ul>' +
+                state.duplicates.map(function (d) { return '<li>' + esc(d.filename) + ' (Case ' + esc(d.caseNumber) + ') — duplicate of ' + esc(d.originalFilename) + '</li>'; }).join('') + '</ul></div>';
+        }
+        if (state.noCaseNumber.length) {
+            notes += '<div class="notice"><strong>' + plural(state.noCaseNumber.length, 'file') + ' with no readable Case Number (could not check for duplicates):</strong><ul>' +
+                state.noCaseNumber.map(function (n) { return '<li>' + esc(n.filename) + ' — ' + plural(n.rowCount, 'row') + ' kept</li>'; }).join('') + '</ul></div>';
+        }
+        var empty = state.files.filter(function (f) { return !f.error && f.rowCount === 0 && !f.skippedAsDuplicate; });
         if (empty.length) {
             notes += '<div class="notice"><strong>No employee rows were found in:</strong><ul>' +
                 empty.map(function (f) { return '<li>' + esc(f.filename) + '</li>'; }).join('') + '</ul></div>';
@@ -1722,7 +1869,9 @@ if (typeof window !== 'undefined') {
     }
     $('download-csv').addEventListener('click', function () {
         if (!state.rows.length) return;
-        download(IDOLParser.generateCsv(state.rows), 'text/csv;charset=utf-8;', 'idol_certified_payroll_combined.csv', 'CSV');
+        var rows = classificationFilteredRows();
+        download(IDOLParser.generateCsv(rows), 'text/csv;charset=utf-8;', 'idol_certified_payroll_combined.csv', 'CSV');
+        $('download-status').textContent = 'CSV exported ' + rows.length + ' of ' + state.rows.length + ' rows' + (rows.length !== state.rows.length ? ' (classification-filtered; JSON export remains unfiltered).' : '.');
     });
     $('download-json').addEventListener('click', function () {
         if (!state.rows.length) return;
@@ -1823,7 +1972,12 @@ if (typeof window !== 'undefined') {
                 'employee.nameRedacted is true when the employee name was not present in the PDF (redacted). In that case a synthetic identifier like "Redacted Employee 1 - LABORER (row 3)" is used as the name so workers can still be distinguished.'
             ],
             sources: {
-                files: state.files.map(function (f) { return { filename: f.filename, payrollRecordCount: f.rowCount, error: f.error }; })
+                files: state.files.map(function (f) {
+                    var entry = { filename: f.filename, payrollRecordCount: f.rowCount, error: f.error };
+                    if (f.skippedAsDuplicate) { entry.skippedAsDuplicate = true; entry.duplicateOf = f.duplicateOf; }
+                    if (f.conflictWithSameCaseNumber) { entry.conflictWithSameCaseNumber = true; entry.conflictsWith = f.conflictsWith; }
+                    return entry;
+                })
             },
             summary: {
                 counts: { sourceFiles: state.files.length, publicBodies: S.bodies.size, projects: S.projects.size, contractors: S.contractors.size,
@@ -2230,6 +2384,7 @@ if (typeof window !== 'undefined') {
     // ----- Reset -----
     $('reset-btn').addEventListener('click', function () {
         state.rows = []; state.errors = []; state.files = []; state.index = [];
+        state.duplicates = []; state.conflicts = []; state.noCaseNumber = [];
         fileInput.value = '';
         uploadMsg.hidden = true;
         $('results-section').hidden = true;
