@@ -115,6 +115,8 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
 .badge.below { color: var(--danger); background: var(--danger-bg); border-color: var(--danger); }
 .badge.meets { color: var(--pass-text); background: var(--pass-bg); border-color: var(--pass-bg); }
 .badge.norate { color: var(--warn); background: var(--warn-bg); border-color: var(--warn); }
+.badge.p { color: var(--text-muted); background: var(--bg); border-color: var(--border); }
+.badge.np { color: var(--warn); background: var(--warn-bg); border-color: var(--warn); }
 
 .table-tools { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
 .table-tools input[type=search] { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); min-width: 260px; min-height: 40px; }
@@ -138,6 +140,10 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
 .cx-checks label { display: inline-flex; gap: var(--s1); align-items: center; cursor: pointer; }
 .cx-checks input { width: 16px; height: 16px; accent-color: var(--primary); }
 .cx-actions { display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center; margin: var(--s2) 0; }
+.cx-letter { margin-top: var(--s3); }
+.cx-letter-head { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; justify-content: space-between; max-width: 100ch; margin-bottom: var(--s1); }
+.cx-letter-head h3 { font-size: var(--fs-md); font-weight: 700; }
+.cx-notes { margin: 0 0 var(--s2); padding-left: var(--s3); }
 .complaint-text { display: block; width: 100%; max-width: 100ch; min-height: 320px; padding: var(--s2); font: 400 var(--fs-md)/1.6 var(--font); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; resize: vertical; white-space: pre-wrap; }
 </style>
 </head>
@@ -206,24 +212,24 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
 
     <section class="card" id="complaint-section" aria-labelledby="complaint-h" style="margin-top: var(--s2);" hidden>
       <h2 id="complaint-h" tabindex="-1">Complaint text</h2>
-      <p class="muted small" style="margin-bottom: var(--s2);">Plain text for a prevailing wage complaint, built from the extracted data. A complaint usually names one contractor, so choose a contractor and project first. Check every figure against the source PDFs, edit the text if you need to, and copy it into the complaint form.</p>
+      <p class="muted small" style="margin-bottom: var(--s2);">Plain text for prevailing wage complaints, built from the extracted data. The tool writes one separate letter for each contractor that has findings. Check every figure against the source PDFs, edit the text if you need to, and paste each letter into its complaint narrative field.</p>
       <div class="cx-options">
         <label class="field">Contractor<select id="cx-contractor"></select></label>
         <label class="field">Project<select id="cx-project"></select></label>
       </div>
       <div class="cx-checks">
         <label><input type="checkbox" id="cx-detail" checked> Include worker-by-worker detail</label>
-        <label><input type="checkbox" id="cx-benefits" checked> Include benefits reported as zero</label>
+        <label><input type="checkbox" id="cx-benefits" checked> Note benefits shown as zero where the total is also short</label>
+        <label><input type="checkbox" id="cx-backwages" checked> Include estimated back wages</label>
         <label><input type="checkbox" id="cx-apprentices"> Include apprentices in the total package finding</label>
       </div>
-      <p class="muted small">The prevailing rates in this tool are Cook County Laborer rates. Confirm that the workers named in each finding are laborers on a Cook County project. Changing an option rewrites the text below and removes any edits you made. <span id="cx-scope"></span></p>
+      <p class="muted small">The prevailing rates in this tool are Cook County Laborer rates. Confirm that the workers named in each finding are laborers on a Cook County project. Changing an option rewrites the letters and removes any edits you made. <span id="cx-scope"></span></p>
+      <ul id="cx-notes" class="cx-notes small" aria-label="Notes for the analyst, not part of the letters" hidden></ul>
       <div class="cx-actions">
-        <button type="button" class="btn btn-primary" id="copy-complaint">Copy text</button>
         <button type="button" class="btn" id="hide-complaint">Hide</button>
         <span id="copy-status" class="small muted" role="status"></span>
       </div>
-      <label class="sr-only" for="complaint-text">Complaint text, editable</label>
-      <textarea id="complaint-text" class="complaint-text" spellcheck="false"></textarea>
+      <div id="complaint-letters"></div>
     </section>
   </section>
 </main>
@@ -291,6 +297,7 @@ const CSV_COLUMNS = [
     'Contractor Contact Name',
     'Contractor Primary Email',
     'Name',
+    'name_redacted',
     'Classification',
     'J',
     'F',
@@ -305,6 +312,8 @@ const CSV_COLUMNS = [
     'Vacation',
     'Training',
     'CALCULATED_total_compensation_rate',
+    'source_line',
+    'np_sourced',
     'gross_check_pass',
     'hours_check_pass',
     'total_comp_check_pass',
@@ -576,12 +585,49 @@ function extractHeaderFields(page1Words) {
 function extractEmployeeDetails(allPagesWords) {
     /**
      * allPagesWords: array of words arrays (pages 2+, i.e., index 0 = page 2)
+     *
+     * When employee names are redacted (the Name column in the PDF is blank),
+     * each employee still has J/F/A flags and a classification, so they are
+     * still detected by row order. But the Name field would be empty for
+     * every employee, which collapses them in downstream grouping (dashboard,
+     * complaint letters, JSON employee entities).
+     *
+     * To prevent that, we assign a synthetic identifier when no name word was
+     * collected:
+     *   "Redacted Employee {n} - {classification} (row {N})"
+     * where {n} is the sequential count among redacted employees (1, 2, 3, …)
+     * and {N} is the overall employee position (1-indexed) in the Employee
+     * Details section. The name_redacted flag is set to true so the table,
+     * CSV, and JSON can distinguish synthetic names from real ones.
      */
     const employees = [];
     let inEdSection = false;
     let currentEmployee = null;
     let currentNameParts = [];
     let currentClassRowParts = [];
+    let redactedCounter = 0;
+
+    // Finalize the current employee: join name + classification, assign a
+    // synthetic name if the PDF had no name text, and push to the array.
+    function finalizeCurrent() {
+        if (currentEmployee === null) return;
+        var name = currentNameParts.filter(function (p) { return p; }).join(' ').trim();
+        var classification = joinClassification(currentClassRowParts);
+        var rowIndex = employees.length + 1; // 1-based overall position
+        if (!name) {
+            redactedCounter++;
+            name = 'Redacted Employee ' + redactedCounter +
+                ' - ' + (classification || 'classification not found') +
+                ' (row ' + rowIndex + ')';
+            currentEmployee.name_redacted = true;
+        } else {
+            currentEmployee.name_redacted = false;
+        }
+        currentEmployee.name = name;
+        currentEmployee.classification = classification;
+        employees.push(currentEmployee);
+        currentEmployee = null;
+    }
 
     for (const words of allPagesWords) {
         const rows = groupWordsIntoRows(words);
@@ -595,21 +641,11 @@ function extractEmployeeDetails(allPagesWords) {
                 continue;
             }
             if (rowTextJoined.includes('Work Classification')) {
-                if (currentEmployee !== null) {
-                    currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
-                    currentEmployee.classification = joinClassification(currentClassRowParts);
-                    employees.push(currentEmployee);
-                    currentEmployee = null;
-                }
+                finalizeCurrent();
                 return employees;
             }
             if (rowTextJoined.includes('I, do hereby state')) {
-                if (currentEmployee !== null) {
-                    currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
-                    currentEmployee.classification = joinClassification(currentClassRowParts);
-                    employees.push(currentEmployee);
-                    currentEmployee = null;
-                }
+                finalizeCurrent();
                 return employees;
             }
 
@@ -637,11 +673,7 @@ function extractEmployeeDetails(allPagesWords) {
 
             if (Object.keys(jfaWords).length > 0) {
                 // Save previous employee
-                if (currentEmployee !== null) {
-                    currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
-                    currentEmployee.classification = joinClassification(currentClassRowParts);
-                    employees.push(currentEmployee);
-                }
+                finalizeCurrent();
 
                 // Start new
                 currentEmployee = {
@@ -662,11 +694,7 @@ function extractEmployeeDetails(allPagesWords) {
     }
 
     // Save last employee
-    if (currentEmployee !== null) {
-        currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
-        currentEmployee.classification = joinClassification(currentClassRowParts);
-        employees.push(currentEmployee);
-    }
+    finalizeCurrent();
 
     return employees;
 }
@@ -719,15 +747,67 @@ function joinClassification(classRowParts) {
 function extractWorkClassification(allPagesWords) {
     /**
      * allPagesWords: array of words arrays (pages 2+)
-     * Returns array of P-row dicts in row order.
+     *
+     * Returns an array of triplets, one per employee, in row order:
+     *   { pRow: {...}|null, npRow: {...}|null, benefits: {...} }
+     *
+     * The IDOL form has three lines per employee in the Work Classification
+     * section, always in this order:
+     *   P       — prevailing-wage work (hours, rates, gross, net)
+     *   NP      — non-prevailing-wage work (same columns)
+     *   Pension — fringe benefits (Pension, Health, Vacation, Training)
+     *
+     * Contractors sometimes put all the data on the NP line by mistake and
+     * leave the P line at zero. The previous version of this function skipped
+     * NP rows entirely, which meant those employees showed up with $0 total
+     * compensation and a trivially-passing extraction check. Now we keep both
+     * the P and NP rows and let processPdf decide which one carries the wage
+     * data for the comparison.
      */
     const results = [];
     let inWcSection = false;
-    let currentPRow = null;
+    let currentTriplet = null;
 
     const headerKeywords = new Set(['Name', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat',
         'Sun', 'Straight', 'Hourly', 'Gross', 'Net', 'Wage',
         'Rate', 'Dub', 'Dbl', 'Tim', 'Tot', 'OT', 'Wor']);
+
+    // Collect numeric columns from a P or NP data row into a plain object.
+    function collectDataRow(rowWords) {
+        const obj = {};
+        for (const w of rowWords) {
+            const xc = w.x0 + w.width / 2;
+            const col = assignWcColumn(xc);
+            if (col && col !== 'Name' && col !== 'PNP' && isNumeric(w.text)) {
+                obj[col] = parseFloat(w.text);
+            }
+        }
+        return obj;
+    }
+
+    // Parse the Pension/Health/Vacation/Training labels and their following
+    // numeric values from a Pension marker row.
+    function collectBenefits(rowWords) {
+        const sortedWords = [...rowWords].sort((a, b) => a.x0 - b.x0);
+        const benefits = {};
+        for (let i = 0; i < sortedWords.length; i++) {
+            const w = sortedWords[i];
+            if (['Pension', 'Health', 'Vacation', 'Training'].includes(w.text)) {
+                for (let j = i + 1; j < sortedWords.length; j++) {
+                    if (isNumeric(sortedWords[j].text)) {
+                        benefits[w.text] = parseFloat(sortedWords[j].text);
+                        break;
+                    }
+                }
+            }
+        }
+        return {
+            Pension: benefits.Pension || 0,
+            Health: benefits.Health || 0,
+            Vacation: benefits.Vacation || 0,
+            Training: benefits.Training || 0
+        };
+    }
 
     for (const words of allPagesWords) {
         const rows = groupWordsIntoRows(words);
@@ -760,42 +840,24 @@ function extractWorkClassification(allPagesWords) {
             }
 
             if (marker === 'P') {
-                if (currentPRow !== null) results.push(currentPRow);
-                currentPRow = {};
-                for (const w of rowWords) {
-                    const xc = w.x0 + w.width / 2;
-                    const col = assignWcColumn(xc);
-                    if (col && col !== 'Name' && col !== 'PNP' && isNumeric(w.text)) {
-                        currentPRow[col] = parseFloat(w.text);
-                    }
-                }
+                // Start a new employee triplet
+                if (currentTriplet !== null) results.push(currentTriplet);
+                currentTriplet = { pRow: collectDataRow(rowWords), npRow: null, benefits: {} };
             } else if (marker === 'NP') {
-                // Skip NP rows
+                // Attach the NP row to the current triplet
+                if (currentTriplet !== null) {
+                    currentTriplet.npRow = collectDataRow(rowWords);
+                }
             } else if (marker === 'Pension') {
-                if (currentPRow !== null) {
-                    const sortedWords = [...rowWords].sort((a, b) => a.x0 - b.x0);
-                    const benefits = {};
-                    for (let i = 0; i < sortedWords.length; i++) {
-                        const w = sortedWords[i];
-                        if (['Pension', 'Health', 'Vacation', 'Training'].includes(w.text)) {
-                            for (let j = i + 1; j < sortedWords.length; j++) {
-                                if (isNumeric(sortedWords[j].text)) {
-                                    benefits[w.text] = parseFloat(sortedWords[j].text);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    currentPRow.Pension = benefits.Pension || 0;
-                    currentPRow.Health = benefits.Health || 0;
-                    currentPRow.Vacation = benefits.Vacation || 0;
-                    currentPRow.Training = benefits.Training || 0;
+                // Attach benefits to the current triplet
+                if (currentTriplet !== null) {
+                    currentTriplet.benefits = collectBenefits(rowWords);
                 }
             }
         }
     }
 
-    if (currentPRow !== null) results.push(currentPRow);
+    if (currentTriplet !== null) results.push(currentTriplet);
     return results;
 }
 
@@ -853,7 +915,14 @@ function runValidationChecks(row, grossTolerance = 1.0) {
 async function processPdf(file) {
     /**
      * Process a single PDF file.
-     * Returns array of employee row dicts (one per P-row).
+     * Returns array of employee row dicts (one per employee triplet).
+     *
+     * For each employee, the Work Classification section has a P row, an NP
+     * row, and a Pension row. We use the P row for wages when it carries any
+     * non-zero hours or gross; otherwise we fall back to the NP row (when the
+     * contractor put everything on NP by mistake) and flag it as np_sourced.
+     * Benefits always come from the Pension row, regardless of which wage row
+     * was selected.
      */
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -871,44 +940,84 @@ async function processPdf(file) {
     // Extract employee details (pages 2+ = index 1+)
     const edEmployees = extractEmployeeDetails(allPagesWords.slice(1));
 
-    // Extract work classification (pages 2+ = index 1+)
-    const wcRows = extractWorkClassification(allPagesWords.slice(1));
+    // Extract work classification triplets (pages 2+ = index 1+)
+    const wcTriplets = extractWorkClassification(allPagesWords.slice(1));
+
+    // Helper: does a P or NP data row carry any non-zero wage/hour data?
+    function rowHasData(r) {
+        if (!r) return false;
+        return (r.Straight && r.Straight > 0) ||
+               (r.OT_Hrs && r.OT_Hrs > 0) ||
+               (r.DblTim_Hrs && r.DblTim_Hrs > 0) ||
+               (r.Gross && r.Gross > 0) ||
+               (r.Hourly && r.Hourly > 0);
+    }
 
     // Match by row order and build output rows
     const rows = [];
-    for (let i = 0; i < wcRows.length; i++) {
-        const wcRow = wcRows[i];
+    for (let i = 0; i < wcTriplets.length; i++) {
+        const tri = wcTriplets[i];
         const ed = i < edEmployees.length ? edEmployees[i] : {};
 
-        const hourly = wcRow.Hourly || 0;
-        const pension = wcRow.Pension || 0;
-        const health = wcRow.Health || 0;
-        const vacation = wcRow.Vacation || 0;
-        const training = wcRow.Training || 0;
+        // Decide which wage row to use for this employee
+        let wageRow, sourceLine;
+        if (rowHasData(tri.pRow)) {
+            wageRow = tri.pRow;
+            sourceLine = 'P';
+        } else if (rowHasData(tri.npRow)) {
+            wageRow = tri.npRow;
+            sourceLine = 'NP';
+        } else {
+            // Both rows are zero (or missing) — default to P so the output
+            // still has the structural fields.
+            wageRow = tri.pRow || {};
+            sourceLine = 'P';
+        }
+
+        const benefits = tri.benefits || {};
+        const hourly = wageRow.Hourly || 0;
+        const pension = benefits.Pension || 0;
+        const health = benefits.Health || 0;
+        const vacation = benefits.Vacation || 0;
+        const training = benefits.Training || 0;
         const totalComp = Math.round((hourly + pension + health + vacation + training) * 100) / 100;
 
         const row = {};
         Object.assign(row, header);
         row['Source Filename'] = file.name;
         row['Name'] = ed.name || '';
+        row['name_redacted'] = ed.name_redacted === true;
         row['Classification'] = ed.classification || '';
         row['J'] = ed.J || '';
         row['F'] = ed.F || '';
         row['A'] = ed.A || '';
-        row['HourlyWageRate'] = wcRow.Hourly !== undefined ? wcRow.Hourly : '';
-        row['OTWageRate'] = wcRow.OT_Rate !== undefined ? wcRow.OT_Rate : '';
-        row['DblTimWage'] = wcRow.DblTim_Rate !== undefined ? wcRow.DblTim_Rate : '';
-        row['Gross'] = wcRow.Gross !== undefined ? wcRow.Gross : '';
-        row['Net'] = wcRow.Net !== undefined ? wcRow.Net : '';
-        row['Pension'] = wcRow.Pension !== undefined ? wcRow.Pension : '';
-        row['Health'] = wcRow.Health !== undefined ? wcRow.Health : '';
-        row['Vacation'] = wcRow.Vacation !== undefined ? wcRow.Vacation : '';
-        row['Training'] = wcRow.Training !== undefined ? wcRow.Training : '';
+        row['HourlyWageRate'] = wageRow.Hourly !== undefined ? wageRow.Hourly : '';
+        row['OTWageRate'] = wageRow.OT_Rate !== undefined ? wageRow.OT_Rate : '';
+        row['DblTimWage'] = wageRow.DblTim_Rate !== undefined ? wageRow.DblTim_Rate : '';
+        row['Gross'] = wageRow.Gross !== undefined ? wageRow.Gross : '';
+        row['Net'] = wageRow.Net !== undefined ? wageRow.Net : '';
+        row['Pension'] = benefits.Pension !== undefined ? benefits.Pension : '';
+        row['Health'] = benefits.Health !== undefined ? benefits.Health : '';
+        row['Vacation'] = benefits.Vacation !== undefined ? benefits.Vacation : '';
+        row['Training'] = benefits.Training !== undefined ? benefits.Training : '';
         row['CALCULATED_total_compensation_rate'] = totalComp;
+        row['source_line'] = sourceLine;
+        row['np_sourced'] = (sourceLine === 'NP');
+        // Hours stay on the row for the complaint text's back wage estimate. They are not CSV columns.
+        row['_StraightHours'] = wageRow.Straight || 0;
+        row['_OTHours'] = wageRow.OT_Hrs || 0;
+        row['_DblTimHours'] = wageRow.DblTim_Hrs || 0;
 
-        // Validation
-        wcRow.CALCULATED_total_compensation_rate = totalComp;
-        const checks = runValidationChecks(wcRow);
+        // Validation — run on a merged object so the total-comp check can see
+        // both the hourly rate (from the wage row) and the benefits (from the
+        // Pension row) at the same time.
+        const validationRow = Object.assign({}, wageRow);
+        validationRow.Pension = pension;
+        validationRow.Health = health;
+        validationRow.Vacation = vacation;
+        validationRow.Training = training;
+        validationRow.CALCULATED_total_compensation_rate = totalComp;
+        const checks = runValidationChecks(validationRow);
         row['gross_check_pass'] = checks.gross_check_pass;
         row['hours_check_pass'] = checks.hours_check_pass;
         row['total_comp_check_pass'] = checks.total_comp_check_pass;
@@ -1116,14 +1225,14 @@ if (typeof window !== 'undefined') {
     var PRIMARY = [
         'Public Body Name', 'Project Number', 'Project Location',
         'Payroll Period Start', 'Payroll Period End',
-        'Company Name', 'Name', 'Classification',
+        'Company Name', 'Name', 'Classification', 'source_line',
         'HourlyWageRate', 'Pension', 'Health', 'Vacation', 'Training',
         'CALCULATED_total_compensation_rate',
         'Applicable Prevailing Wage', 'Comp vs Prevailing Diff', 'prevailing_wage_check_pass'
     ];
     var SECONDARY = [
         'Prevailing Wage Posted Date', 'Case Number', 'Source Filename', 'Agency', 'Issuing Agency',
-        'OTWageRate', 'DblTimWage', 'Gross', 'Net', 'J', 'F', 'A',
+        'OTWageRate', 'DblTimWage', 'Gross', 'Net', 'J', 'F', 'A', 'name_redacted', 'np_sourced',
         'Contractor Location', 'Contractor Contact Name', 'Contractor Primary Email',
         'gross_check_pass', 'hours_check_pass', 'total_comp_check_pass'
     ];
@@ -1131,6 +1240,8 @@ if (typeof window !== 'undefined') {
         'Public Body Name': 'Public body', 'Project Number': 'Project', 'Project Location': 'Project location',
         'Payroll Period Start': 'Period start', 'Payroll Period End': 'Period end',
         'Company Name': 'Contractor', 'Name': 'Employee', 'Classification': 'Classification',
+        'source_line': 'Source line',
+        'name_redacted': 'Name redacted', 'np_sourced': 'NP-sourced',
         'HourlyWageRate': 'Hourly wage', 'Pension': 'Pension', 'Health': 'Health', 'Vacation': 'Vacation', 'Training': 'Training',
         'CALCULATED_total_compensation_rate': 'Calculated total rate',
         'Applicable Prevailing Wage': 'Prevailing total rate',
@@ -1389,6 +1500,20 @@ if (typeof window !== 'undefined') {
                 }).join('') + '</tbody></table></div>';
         }
         var notes = '';
+        // NP-sourced rows note
+        var npSourced = state.rows.filter(function (r) { return r.np_sourced === true; }).length;
+        if (npSourced > 0) {
+            notes += '<p class="small"><span class="badge np">NP</span> ' + plural(npSourced, 'row') +
+                ' ' + (npSourced === 1 ? 'uses wage data from the NP (non-prevailing) line' : 'use wage data from the NP (non-prevailing) line') +
+                ' because the P line was blank. The contractor may have misclassified the work; the figures shown are from the NP line.</p>';
+        }
+        // Redacted-name note
+        var redacted = state.rows.filter(function (r) { return r.name_redacted === true; }).length;
+        if (redacted > 0) {
+            notes += '<p class="small"><span class="badge norate">Redacted</span> ' + plural(redacted, 'row') +
+                ' ' + (redacted === 1 ? 'has a redacted employee name' : 'have redacted employee names') +
+                ' in the source PDF. Sequential identifiers (Redacted Employee 1, 2, …) were assigned so each worker can be distinguished.</p>';
+        }
         if (w.norate > 0) {
             notes += '<p class="small"><span class="badge norate">No rate</span> ' + plural(w.norate, 'row') +
                 ' could not be compared because no prevailing rate is on file for the payroll start date.' +
@@ -1409,6 +1534,7 @@ if (typeof window !== 'undefined') {
         if (DATES.indexOf(col) >= 0) return 'date';
         if (col === 'Comp vs Prevailing Diff') return 'diff';
         if (col === 'prevailing_wage_check_pass') return 'wage';
+        if (col === 'source_line') return 'sourceline';
         if (CHECKS.indexOf(col) >= 0) return 'check';
         return 'text';
     }
@@ -1436,6 +1562,12 @@ if (typeof window !== 'undefined') {
             var st = wageStatus(r);
             var txt = st === 'below' ? 'FAIL' : (st === 'meets' ? 'PASS' : 'No rate');
             return '<td class="' + cls.join(' ') + '"><span class="badge ' + st + '">' + txt + '</span></td>';
+        }
+        if (t === 'sourceline') {
+            var sl = v === 'NP' ? 'np' : 'p';
+            var slTxt = v === 'NP' ? 'NP' : 'P';
+            var slTitle = v === 'NP' ? ' title="Wage data from the NP (non-prevailing) line — contractor may have misclassified"' : '';
+            return '<td class="' + cls.join(' ') + '"><span class="badge ' + sl + '"' + slTitle + '>' + slTxt + '</span></td>';
         }
         if (empty) { cls.push('empty'); if (t === 'money' || t === 'diff') cls.push('num'); return '<td class="' + cls.join(' ') + '">&mdash;</td>'; }
         if (t === 'money') { cls.push('num'); inner = isNum(v) ? money(v) : esc(v); }
@@ -1655,12 +1787,13 @@ if (typeof window !== 'undefined') {
                 contractorId: id.contractor(r), contractorName: nn(r['Company Name']),
                 employeeId: id.employee(r),
                 payrollPeriod: { start: isIso(r['Payroll Period Start']) ? r['Payroll Period Start'] : null, end: isIso(r['Payroll Period End']) ? r['Payroll Period End'] : null },
-                employee: { name: nn(r['Name']), classification: nn(r['Classification']),
+                employee: { name: nn(r['Name']), nameRedacted: r.name_redacted === true, classification: nn(r['Classification']),
                             isJourneyman: yesNo(r['J']), isForeman: yesNo(r['F']), isApprentice: yesNo(r['A']) },
                 hourlyRates: { straightTime: numOrNull(r['HourlyWageRate']), overtime: numOrNull(r['OTWageRate']), doubleTime: numOrNull(r['DblTimWage']) },
                 fringeBenefits: { pension: numOrNull(r['Pension']), health: numOrNull(r['Health']), vacation: numOrNull(r['Vacation']), training: numOrNull(r['Training']) },
                 calculatedTotalRate: comp,
                 earnings: { gross: numOrNull(r['Gross']), net: numOrNull(r['Net']) },
+                wageDataSource: { line: nn(r['source_line']) || 'P', npSourced: r.np_sourced === true },
                 prevailingWage: {
                     status: st === 'below' ? 'below_prevailing' : (st === 'meets' ? 'meets_prevailing' : 'no_rate_on_file'),
                     applicableTotalRate: numOrNull(r['Applicable Prevailing Wage']),
@@ -1685,7 +1818,9 @@ if (typeof window !== 'undefined') {
                 'Entity ids (publicBodyId, projectId, contractorId, employeeId) are derived from names, so spelling differences create separate entities. Employee ids come from names only because no SSN is extracted.',
                 'The project identifier is the value read from the "Project" field on the form, with the project location kept alongside it.',
                 'prevailingWage.status compares calculatedTotalRate with the Cook County Laborer total package posted on or before the payroll period start date. A record is below_prevailing when it falls short by more than $0.01.',
-                'extractionChecks record internal consistency tests on the extracted numbers. They are informational and were not used to remove or change any record.'
+                'extractionChecks record internal consistency tests on the extracted numbers. They are informational and were not used to remove or change any record.',
+                'wageDataSource.line indicates whether the hourly rate, hours, and earnings came from the P (prevailing) or NP (non-prevailing) line on the form. When the P line is blank and the NP line has data, the NP line is used and npSourced is true, because contractors sometimes misclassify work as non-prevailing by mistake.',
+                'employee.nameRedacted is true when the employee name was not present in the PDF (redacted). In that case a synthetic identifier like "Redacted Employee 1 - LABORER (row 3)" is used as the name so workers can still be distinguished.'
             ],
             sources: {
                 files: state.files.map(function (f) { return { filename: f.filename, payrollRecordCount: f.rowCount, error: f.error }; })
@@ -1699,7 +1834,9 @@ if (typeof window !== 'undefined') {
                     employeesBelow: w.belowEmployees.size, contractorsBelow: S.under.size,
                     largestShortfallPerHour: w.below ? S.maxGap : null, averageShortfallPerHour: w.below ? S.avgGap : null
                 },
-                extractionChecks: { recordsWithAnyFlag: anyFlag }
+                extractionChecks: { recordsWithAnyFlag: anyFlag,
+                    recordsFromNpLine: rows.filter(function (r) { return r.np_sourced === true; }).length,
+                    recordsWithRedactedName: rows.filter(function (r) { return r.name_redacted === true; }).length }
             },
             prevailingWageReference: {
                 description: 'Cook County Laborer total package rates applied in this data set',
@@ -1714,9 +1851,11 @@ if (typeof window !== 'undefined') {
     }
 
     // ----- Complaint text -----
+    // One letter is written for each contractor that has findings. Each letter stands alone,
+    // so an analyst can paste it into a complaint narrative field without editing out other contractors.
     var MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     var BENEFITS = [['Pension', 'pension'], ['Health', 'health'], ['Vacation', 'vacation'], ['Training', 'training']];
-    var cxReady = false, cxTimer = null;
+    var cxReady = false;
 
     function longDate(s) {
         var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
@@ -1735,7 +1874,6 @@ if (typeof window !== 'undefined') {
         if (items.length === 2) return items[0] + ' and ' + items[1];
         return items.slice(0, -1).join(', ') + ', and ' + items[items.length - 1];
     }
-    function moneyRange(a, b) { return a === b ? money(a) : money(a) + ' to ' + money(b); }
     function uniq(a) { return Array.from(new Set(a)); }
     function minOf(a) { return a.length ? Math.min.apply(null, a) : 0; }
     function maxOf(a) { return a.length ? Math.max.apply(null, a) : 0; }
@@ -1767,112 +1905,193 @@ if (typeof window !== 'undefined') {
     }
     function gapOf(r) { return round2(-r['Comp vs Prevailing Diff']); }
 
-    function buildComplaint(rows, opt) {
-        var finding = function (r) { return wageStatus(r) === 'below' && (opt.apprentices || !isApprentice(r)); };
-        var hasZero = function (r) { return opt.benefits && zeroBenefits(r).length > 0; };
-        var now = new Date();
-        var todayIso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    // Words and phrases used in the letters
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function nextDay(iso) {
+        var p = iso.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + 1));
+        return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+    }
+    function isWeekly(rs) {
+        return rs.length > 0 && rs.every(function (r) {
+            var s = r['Payroll Period Start'], e = r['Payroll Period End'];
+            return isIso(s) && isIso(e) && daysBetween(s, e) === 7;
+        });
+    }
+    function payrolls(n, rs) { return n + ' ' + (isWeekly(rs) ? 'weekly payroll' : 'payroll period') + (n === 1 ? '' : 's'); }
+    // "Doe, John" becomes "John Doe". Any other form of the name is left as it appears in the PDF.
+    function personName(s) {
+        var m = /^([^,]+),\s*([^,]+)$/.exec(norm(s));
+        return m ? m[2] + ' ' + m[1] : norm(s);
+    }
+    function shortfallPhrase(gaps) {
+        return minOf(gaps) === maxOf(gaps) ? 'was ' + money(maxOf(gaps)) + ' an hour'
+            : 'ranged from ' + money(minOf(gaps)) + ' to ' + money(maxOf(gaps)) + ' an hour';
+    }
+    function money0(v) { return money(isNum(v) ? v : 0); }
+    function breakdown(r) {
+        return '(' + money0(r['HourlyWageRate']) + ' in wages, ' + money0(r['Pension']) + ' pension, ' + money0(r['Health']) + ' health, ' +
+            money0(r['Vacation']) + ' vacation, and ' + money0(r['Training']) + ' training)';
+    }
+    function hoursOf(r) {
+        return ['_StraightHours', '_OTHours', '_DblTimHours'].reduce(function (s, k) { return s + (isNum(r[k]) ? r[k] : 0); }, 0);
+    }
+    function hoursText(h) { return (Math.round(h * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+    function projLabel(r) {
+        var n = norm(r['Project Number']), l = norm(r['Project Location']), b = norm(r['Public Body Name']);
+        var core = n ? 'project ' + n + (l ? ' (' + l + ')' : '') : (l ? 'the project at ' + l : 'a project not identified in the PDF');
+        return core + (b ? ' for ' + b : '');
+    }
+    function projHeading(r) {
+        var n = norm(r['Project Number']), l = norm(r['Project Location']), b = norm(r['Public Body Name']);
+        var core = n ? 'Project ' + n + (l ? ' (' + l + ')' : '') : (l ? 'Project at ' + l : 'Project not identified in the PDF');
+        return core + (b ? ', ' + b : '');
+    }
 
+    // Describes payroll periods as runs of consecutive weeks, for example
+    // "the 3 weeks from February 2, 2026 through February 22, 2026 and the week of March 9, 2026".
+    function periodsPhrase(rs) {
+        var m = new Map();
+        rs.forEach(function (r) {
+            var s = r['Payroll Period Start'], e = r['Payroll Period End'];
+            if (isIso(s)) m.set(s + '|' + e, { s: s, e: isIso(e) ? e : s });
+        });
+        var ps = Array.from(m.values()).sort(function (a, b) { return a.s < b.s ? -1 : (a.s > b.s ? 1 : 0); });
+        if (!ps.length) return 'payroll periods with dates not found in the PDFs';
+        var weekly = isWeekly(rs), runs = [];
+        ps.forEach(function (p) {
+            var last = runs[runs.length - 1];
+            if (last && nextDay(last.e) === p.s) { last.e = p.e; last.n++; } else runs.push({ s: p.s, e: p.e, n: 1 });
+        });
+        return listOf(runs.map(function (x) {
+            if (x.n === 1) return weekly ? 'the week of ' + longDate(x.s) : 'the payroll period ' + dateSpan(x.s, x.e);
+            return 'the ' + x.n + ' ' + (weekly ? 'weeks' : 'payroll periods') + ' from ' + longDate(x.s) + ' through ' + longDate(x.e);
+        }));
+    }
+
+    // One worker, one paragraph. Weeks with identical pay and prevailing rate are described together.
+    function workerParagraph(w) {
         var groups = new Map();
-        rows.forEach(function (r) {
-            var k = cKey(r);
-            if (!groups.has(k)) groups.set(k, { name: cName(r), rows: [] });
-            groups.get(k).rows.push(r);
+        w.rows.slice().sort(function (a, b) { return a['Payroll Period Start'] < b['Payroll Period Start'] ? -1 : 1; }).forEach(function (r) {
+            var k = [r['HourlyWageRate'], r['Pension'], r['Health'], r['Vacation'], r['Training'], r['Applicable Prevailing Wage']].join('|');
+            if (!groups.has(k)) groups.set(k, []);
+            groups.get(k).push(r);
         });
-        var gs = Array.from(groups.values()).map(function (g) {
-            g.below = g.rows.filter(finding);
-            g.zero = g.rows.filter(hasZero);
-            return g;
+        var cls = Array.from(w.cls);
+        var who = personName(w.name) + (cls.length ? ' (' + listOf(cls) + ')' : '');
+        // Note NP-sourced data once per worker, right after the name
+        var npNote = w.rows.some(function (r) { return r.np_sourced === true; })
+            ? ' [wage data from the NP line — contractor may have misclassified]' : '';
+        return Array.from(groups.values()).map(function (rs, i) {
+            var r = rs[0], calc = r['CALCULATED_total_compensation_rate'], prev = r['Applicable Prevailing Wage'], gap = gapOf(r);
+            return i === 0
+                ? who + npNote + ' was paid a total of ' + money(calc) + ' an hour in wages and benefits ' + breakdown(r) + ' for ' + periodsPhrase(rs) +
+                  '. The prevailing rate was ' + money(prev) + ' an hour, so the shortfall was ' + money(gap) + ' an hour.'
+                : 'For ' + periodsPhrase(rs) + ', the total was ' + money(calc) + ' an hour ' + breakdown(r) +
+                  ' against a prevailing rate of ' + money(prev) + ' an hour, a shortfall of ' + money(gap) + ' an hour.';
+        }).join(' ');
+    }
+
+    function benefitSentence(rs) {
+        var z = rs.filter(function (r) { return zeroBenefits(r).length > 0; });
+        if (!z.length) return null;
+        var counts = BENEFITS.map(function (b) {
+            return { name: b[1], n: z.filter(function (r) { return zeroBenefits(r).indexOf(b[1]) >= 0; }).length };
+        }).filter(function (c) { return c.n > 0; });
+        if (rs.length === 1) return 'In this payroll, ' + listOf(counts.map(function (c) { return c.name; })) + ' ' + sv(counts.length, 'is', 'are') + ' shown as $0.00 or blank.';
+        return 'In ' + z.length + ' of these ' + (isWeekly(rs) ? 'weekly payrolls' : 'payroll periods') + ', at least one benefit is shown as $0.00 or blank: ' +
+            listOf(counts.map(function (c) { return c.name + ' in ' + c.n; })) + '.';
+    }
+
+    function buildLetter(g, opt) {
+        var C = g.name, below = g.below, out = [];
+        var gaps = below.map(gapOf);
+
+        // Projects reviewed, and projects with findings
+        var projAll = new Map(), projBelow = new Map();
+        g.rows.forEach(function (r) { var k = projectKey(r); if (!projAll.has(k)) projAll.set(k, r); });
+        below.forEach(function (r) { var k = projectKey(r); if (!projBelow.has(k)) projBelow.set(k, { r0: r, rows: [] }); projBelow.get(k).rows.push(r); });
+        var projLabels = Array.from(projAll.values()).map(projLabel);
+        var projectsPhrase = projLabels.length === 1 ? projLabels[0] : projLabels.length + ' projects: ' + projLabels.join('; ');
+        var projList = Array.from(projBelow.values());
+        var multi = projList.length > 1;
+
+        // Opening
+        out.push('We are filing this complaint against ' + C + '. We reviewed the certified payrolls that ' + C + ' filed for ' + projectsPhrase +
+            ', covering payroll periods ' + spanPhrase(isoMin(g.rows.map(function (r) { return r['Payroll Period Start']; })), isoMax(g.rows.map(function (r) { return r['Payroll Period End']; }))) + '.');
+        out.push('The payrolls show that ' + C + ' paid ' + plural(workerCount(below), 'worker') + ' less than the prevailing rate in ' + payrolls(below.length, below) +
+            '. The shortfall ' + shortfallPhrase(gaps) + '. We ask the Department to investigate.');
+        var info = [];
+        [['Contractor Location', 'address'], ['Contractor Contact Name', 'contact'], ['Contractor Primary Email', 'email']].forEach(function (f) {
+            var v = uniq(g.rows.map(function (r) { return norm(r[f[0]]); }).filter(function (x) { return x && x.toLowerCase() !== NOT_FOUND.toLowerCase(); }));
+            if (v.length) info.push(f[1] + ' as ' + v.join(' and '));
         });
-        var withFindings = gs.filter(function (g) { return g.below.length || g.zero.length; })
-            .sort(function (a, b) { return (b.below.length + b.zero.length) - (a.below.length + a.zero.length) || a.name.localeCompare(b.name); });
-        var without = gs.filter(function (g) { return !(g.below.length || g.zero.length); });
+        if (info.length) out.push('The payrolls list this contractor\u2019s ' + info.join('; ') + '.');
 
-        var allBelow = rows.filter(finding), allZero = rows.filter(hasZero);
-        var out = [];
-        out.push('Prevailing Wage Act: Certified Payroll Review\nPrepared ' + longDate(todayIso));
+        // Findings, one section per project when there is more than one
+        projList.forEach(function (p) {
+            var rs = p.rows, paras = [];
+            if (multi) paras.push(C + ' paid ' + plural(workerCount(rs), 'worker') + ' less than the prevailing rate on this project, in ' + payrolls(rs.length, rs) + '. The shortfall ' + shortfallPhrase(rs.map(gapOf)) + '.');
+            if (opt.benefits) { var bs = benefitSentence(rs); if (bs) paras.push(bs); }
+            if (opt.detail) byWorker(rs).forEach(function (w) { paras.push(workerParagraph(w)); });
+            if (paras.length) out.push((multi ? projHeading(p.r0) : 'Findings') + '\n' + paras.join('\n\n'));
+        });
 
-        // Summary
-        var sum = [];
-        sum.push('Summary');
-        sum.push('This review covers ' + entries(rows.length) + ' for ' + plural(workerCount(rows), 'worker') + ' of ' + plural(gs.length, 'contractor') +
-            ' on ' + plural(uniq(rows.map(projectKey)).length, 'project') + ' for ' +
-            plural(uniq(rows.map(bodyKey)).length, 'public body', 'public bodies') + '. The records cover payroll periods ' +
-            spanPhrase(isoMin(rows.map(function (r) { return r['Payroll Period Start']; })), isoMax(rows.map(function (r) { return r['Payroll Period End']; }))) + '.');
-        var f = [];
-        if (allBelow.length) f.push(entries(allBelow.length) + ' for ' + plural(workerCount(allBelow), 'worker') + ' ' + sv(allBelow.length, 'shows', 'show') + ' a total package below the prevailing total.');
-        if (allZero.length) f.push(entries(allZero.length) + ' for ' + plural(workerCount(allZero), 'worker') + ' ' + sv(allZero.length, 'shows', 'show') + ' at least one benefit reported at zero or left blank.');
-        if (!f.length) f.push('This review found no payroll entries with a total package below the prevailing total' + (opt.benefits ? ' and none with a benefit reported at zero or left blank.' : '.'));
-        sum.push(f.join(' '));
-        if (withFindings.length > 1) sum.push('The findings are described by contractor below.');
-        if (without.length && withFindings.length) sum.push('No findings for: ' + listOf(without.map(function (g) { return g.name; })) + '.');
-        out.push(sum.join('\n'));
-
-        // Contractor sections
-        withFindings.forEach(function (g) {
-            var rs = g.rows, L = [];
-            var bodies = uniq(rs.map(function (r) { return norm(r['Public Body Name']); }).filter(Boolean));
-            var projects = uniq(rs.map(projectText));
-            var periods = uniq(rs.map(function (r) { return r['Payroll Period Start'] + '|' + r['Payroll Period End']; }));
-            L.push(g.name);
-            L.push((bodies.length > 1 ? 'Public bodies: ' : 'Public body: ') + (bodies.length ? bodies.join('; ') : 'not found in PDF'));
-            L.push((projects.length > 1 ? 'Projects: ' : 'Project: ') + projects.join('; '));
-            L.push('Payroll periods reviewed: ' + dateSpan(isoMin(rs.map(function (r) { return r['Payroll Period Start']; })), isoMax(rs.map(function (r) { return r['Payroll Period End']; }))) +
-                ' (' + plural(periods.length, 'payroll period') + ')');
-            L.push('Records reviewed: ' + entries(rs.length) + ' for ' + plural(workerCount(rs), 'worker'));
-            out.push(L.join('\n'));
-
-            if (g.below.length) {
-                var gaps = g.below.map(gapOf);
-                var avg = round2(gaps.reduce(function (a, b) { return a + b; }, 0) / gaps.length);
-                var T = ['Total package below the prevailing rate'];
-                var p = entries(g.below.length) + ' for ' + plural(workerCount(g.below), 'worker') + (g.below.length === 1 ? ' shows' : ' show') +
-                    ' a total package below the prevailing total. ';
-                p += minOf(gaps) === maxOf(gaps)
-                    ? 'The shortfall is ' + money(maxOf(gaps)) + ' per hour.'
-                    : 'The shortfall is ' + moneyRange(minOf(gaps), maxOf(gaps)) + ' per hour, and the average shortfall is ' + money(avg) + ' per hour.';
-                T.push(p);
-                if (opt.detail) {
-                    T.push('Worker detail:');
-                    byWorker(g.below).forEach(function (w, i) {
-                        var calc = w.rows.map(function (r) { return r['CALCULATED_total_compensation_rate']; }).filter(isNum);
-                        var prev = w.rows.map(function (r) { return r['Applicable Prevailing Wage']; }).filter(isNum);
-                        var gp = w.rows.map(gapOf);
-                        var cls = Array.from(w.cls);
-                        T.push((i + 1) + '. ' + w.name + (cls.length ? ', ' + listOf(cls) : '') + ': ' + entries(w.rows.length) + ', ' +
-                            dateSpan(isoMin(w.rows.map(function (r) { return r['Payroll Period Start']; })), isoMax(w.rows.map(function (r) { return r['Payroll Period End']; }))) +
-                            '. Total package of ' + moneyRange(minOf(calc), maxOf(calc)) + ' per hour, against a prevailing total of ' + moneyRange(minOf(prev), maxOf(prev)) +
-                            ' per hour. Shortfall of ' + moneyRange(minOf(gp), maxOf(gp)) + ' per hour.');
+        // Estimated back wages, in its own section
+        if (opt.backwages) {
+            var B = ['Estimated back wages'];
+            var counted = below.filter(function (r) { return hoursOf(r) > 0; });
+            if (!counted.length) {
+                B.push('The payrolls do not show hours worked for these workers, so we did not estimate back wages.');
+            } else {
+                B.push('We estimated the amount owed by multiplying the hourly shortfall in each payroll by the hours worked in that payroll (straight-time, overtime, and double-time hours together). The estimate does not add any overtime or double-time premium, so the amount owed may be higher.');
+                var total = 0, lines = [];
+                projList.forEach(function (p) {
+                    var rs = p.rows.filter(function (r) { return hoursOf(r) > 0; });
+                    if (!rs.length) return;
+                    var sub = 0, wl = [];
+                    byWorker(rs).forEach(function (w) {
+                        var amt = 0, hrs = 0;
+                        w.rows.forEach(function (r) { amt += round2(gapOf(r) * hoursOf(r)); hrs += hoursOf(r); });
+                        amt = round2(amt); sub += amt;
+                        wl.push('- ' + personName(w.name) + ': ' + money(amt) + ' for ' + hoursText(hrs) + ' hours');
                     });
-                }
-                out.push(T.join('\n'));
+                    sub = round2(sub); total += sub;
+                    if (multi) lines.push(projHeading(p.r0) + ': ' + money(sub));
+                    if (opt.detail) lines = lines.concat(wl);
+                });
+                if (lines.length) B.push(lines.join('\n'));
+                B.push('Estimated total for ' + C + ': ' + money(round2(total)) + '.');
+                var skipped = below.length - counted.length;
+                if (skipped) B.push(plural(skipped, 'payroll') + ' above ' + sv(skipped, 'shows', 'show') + ' no hours and ' + sv(skipped, 'is', 'are') + ' not included in this estimate.');
             }
+            out.push(B[0] + '\n' + B.slice(1).join('\n\n'));
+        }
 
-            if (g.zero.length) {
-                var Z = ['Benefits reported as zero'];
-                var counts = BENEFITS.map(function (b) {
-                    return { name: b[1], n: g.zero.filter(function (r) { return zeroBenefits(r).indexOf(b[1]) >= 0; }).length };
-                }).filter(function (c) { return c.n > 0; });
-                var zp = 'At least one benefit is reported at $0.00 or left blank in ' + entries(g.zero.length) + ' for ' + plural(workerCount(g.zero), 'worker') + ': ' +
-                    listOf(counts.map(function (c) { return c.name + ' (' + plural(c.n, 'entry', 'entries') + ')'; })) + '.';
-                var a = g.zero.filter(finding).length, b = g.zero.filter(function (r) { return wageStatus(r) === 'meets'; }).length, parts = [];
-                if (a) parts.push(a + ' also ' + sv(a, 'falls', 'fall') + ' below the prevailing total package');
-                if (b) parts.push(b + ' ' + sv(b, 'meets', 'meet') + ' the prevailing total package');
-                if (parts.length) zp += ' Of these entries, ' + parts.join(' and ') + '.';
-                Z.push(zp);
-                if (opt.detail) {
-                    Z.push('Worker detail:');
-                    byWorker(g.zero).forEach(function (w, i) {
-                        var bs = BENEFITS.map(function (x) { return x[1]; }).filter(function (n) {
-                            return w.rows.some(function (r) { return zeroBenefits(r).indexOf(n) >= 0; });
-                        });
-                        var cls = Array.from(w.cls);
-                        Z.push((i + 1) + '. ' + w.name + (cls.length ? ', ' + listOf(cls) : '') + ': ' + entries(w.rows.length) + ' with ' + listOf(bs) + ' at zero or blank.');
-                    });
-                }
-                out.push(Z.join('\n'));
-            }
+        // Method
+        var M = ['Method'];
+        M.push('For each worker in each payroll period, we added the hourly wage and the pension, health, vacation, and training rates shown on the payroll. We compared that total with the prevailing rate for Laborers in Cook County that the Department had posted on or before the first day of the payroll period. We counted a payroll as short only when the total was lower by more than $0.01.');
+        var rateMap = new Map();
+        below.forEach(function (r) {
+            var t = r['Applicable Prevailing Wage'], d = r['Prevailing Wage Posted Date'];
+            if (isNum(t) && isIso(d)) { var e = rateMap.get(t) || { first: d, last: d }; if (d < e.first) e.first = d; if (d > e.last) e.last = d; rateMap.set(t, e); }
         });
+        var rateList = Array.from(rateMap.entries()).sort(function (a, b) { return a[1].first < b[1].first ? -1 : 1; }).map(function (e) {
+            return money(e[0]) + ' (posted ' + (e[1].first === e[1].last ? longDate(e[1].first) : longDate(e[1].first) + ' to ' + longDate(e[1].last)) + ')';
+        });
+        if (rateList.length) M.push('The prevailing ' + sv(rateList.length, 'rate', 'rates') + ' we applied ' + sv(rateList.length, 'was ', 'were ') + listOf(rateList) + '.');
+        var apprIn = below.filter(isApprentice).length;
+        var apprOut = g.rows.filter(function (r) { return wageStatus(r) === 'below' && isApprentice(r); }).length - apprIn;
+        if (apprIn) M.push(plural(apprIn, 'payroll') + ' above ' + sv(apprIn, 'is', 'are') + ' for ' + sv(apprIn, 'an apprentice', 'apprentices') + '. We compared ' + sv(apprIn, 'it', 'them') + ' with the journeyman prevailing rate, and an apprentice rate may be lower.');
+        if (apprOut > 0) M.push('We left out ' + plural(apprOut, 'payroll') + ' for ' + sv(apprOut, 'an apprentice', 'apprentices') + ' whose total was below the journeyman prevailing rate, because an apprentice rate may be lower.');
+        var norate = g.rows.filter(function (r) { return wageStatus(r) === 'norate'; }).length;
+        if (norate) M.push(plural(norate, 'payroll') + ' had no prevailing rate on file for the payroll period and ' + sv(norate, 'was', 'were') + ' not compared.');
+        // NP-sourced note for the method section
+        var npIn = below.filter(function (r) { return r.np_sourced === true; }).length;
+        if (npIn) M.push(plural(npIn, 'payroll') + ' above ' + sv(npIn, 'uses', 'use') + ' wage data from the NP (non-prevailing) line because the P line was blank. The contractor may have misclassified the work; the figures shown are from the NP line.');
+        // Redacted-name note for the method section
+        var redactedIn = below.filter(function (r) { return r.name_redacted === true; }).length;
+        if (redactedIn) M.push(plural(redactedIn, 'payroll') + ' above ' + sv(redactedIn, 'is', 'are') + ' for workers whose names were redacted in the source PDF. We assigned sequential identifiers (Redacted Employee 1, 2, …) based on row position to distinguish them.');
+        out.push(M[0] + '\n' + M.slice(1).join('\n\n'));
 
         // Statutory basis (text taken from 820 ILCS 130/2, 3, 4, 5, and 11)
         out.push([
@@ -1881,37 +2100,46 @@ if (typeof window !== 'undefined') {
             'Under Section 11 (820 ILCS 130/11), a worker who is paid less than the prevailing rate has a right of action for the difference. The contractor or subcontractor is also liable to the Department of Labor for 20% of the underpayment, or 50% in a second or later action. At the worker\u2019s request, the Department may take an assignment of the wage claim. An action must be brought within 5 years of the failure to pay.'
         ].join('\n\n'));
 
-        // Method
-        var M = ['Method'];
-        M.push('Each payroll entry is one worker in one certified payroll period. The calculated total package is the hourly wage rate plus the reported pension, health, vacation, and training rates. The prevailing total is the Cook County Laborer total package posted by the Illinois Department of Labor with the latest posting date on or before the first day of the payroll period. An entry is counted as below the prevailing total when the calculated total package is lower by more than $0.01.');
-        var rateMap = new Map();
-        rows.forEach(function (r) {
-            var t = r['Applicable Prevailing Wage'], d = r['Prevailing Wage Posted Date'];
-            if (isNum(t) && isIso(d)) { var e = rateMap.get(t) || { first: d, last: d }; if (d < e.first) e.first = d; if (d > e.last) e.last = d; rateMap.set(t, e); }
-        });
-        var rateList = Array.from(rateMap.entries()).sort(function (a, b) { return a[1].first < b[1].first ? -1 : 1; }).map(function (e) {
-            return money(e[0]) + ' (posted ' + (e[1].first === e[1].last ? longDate(e[1].first) : longDate(e[1].first) + ' to ' + longDate(e[1].last)) + ')';
-        });
-        if (rateList.length) M.push('Prevailing totals applied to these records: ' + listOf(rateList) + '.');
-        var appr = rows.filter(function (r) { return wageStatus(r) === 'below' && isApprentice(r); }).length;
-        if (appr) {
-            M.push(opt.apprentices
-                ? 'The total package finding includes ' + entries(appr) + ' for ' + sv(appr, 'a worker', 'workers') + ' marked as ' + sv(appr, 'an apprentice', 'apprentices') + ' on the payroll. The journeyman prevailing total was applied to ' + sv(appr, 'it', 'them') + ', and an apprentice wage rate may be lower.'
-                : 'The payroll marks the worker as an apprentice in ' + entries(appr) + ' that ' + sv(appr, 'falls', 'fall') + ' below the journeyman prevailing total. ' + sv(appr, 'This entry is', 'These entries are') + ' left out of the total package finding because an apprentice wage rate may be lower. Apprentices must still receive the same fringe benefits as journeymen, so apprentices are included in the benefits finding.');
-        }
-        var norate = rows.filter(function (r) { return wageStatus(r) === 'norate'; }).length;
-        if (norate) M.push(entries(norate) + ' had no prevailing total on file for the payroll period start date and ' + sv(norate, 'was', 'were') + ' not compared.');
-        M.push('This review compares hourly rates only. It does not calculate back wages, which depend on the hours each worker worked.');
-        out.push(M.join('\n'));
-
         // Source files
         var seen = new Set(), S = ['Source files'];
-        rows.forEach(function (r) {
+        below.forEach(function (r) {
             var line = '- ' + norm(r['Source Filename']) + (norm(r['Case Number']) ? ' (case number ' + norm(r['Case Number']) + ')' : '');
             if (!seen.has(line)) { seen.add(line); S.push(line); }
         });
         out.push(S.join('\n'));
         return out.join('\n\n') + '\n';
+    }
+
+    // Returns { letters: [{ name, count, text }], notes: [text for the analyst, not for the letters] }
+    function buildLetters(rows, opt) {
+        var finding = function (r) { return wageStatus(r) === 'below' && (opt.apprentices || !isApprentice(r)); };
+        var groups = new Map();
+        rows.forEach(function (r) {
+            var k = cKey(r);
+            if (!groups.has(k)) groups.set(k, { name: cName(r), rows: [] });
+            groups.get(k).rows.push(r);
+        });
+        var gs = Array.from(groups.values()).map(function (g) { g.below = g.rows.filter(finding); return g; });
+        var withFindings = gs.filter(function (g) { return g.below.length; })
+            .sort(function (a, b) { return b.below.length - a.below.length || a.name.localeCompare(b.name); });
+        var notes = [];
+        gs.filter(function (g) { return !g.below.length; }).sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (g) {
+            var apprOnly = g.rows.filter(function (r) { return wageStatus(r) === 'below' && isApprentice(r); }).length;
+            notes.push('No letter for ' + g.name + ': no payroll shows a total below the prevailing rate' +
+                (apprOnly ? ' (' + plural(apprOnly, 'apprentice entry', 'apprentice entries') + ' below the journeyman rate left out)' : '') + '.');
+        });
+        withFindings.forEach(function (g) {
+            var odd = byWorker(g.below).filter(function (w) { return !Array.from(w.cls).some(function (c) { return /laborer/i.test(c); }); });
+            if (odd.length) {
+                var names = odd.slice(0, 5).map(function (w) { return personName(w.name) + ' (' + (Array.from(w.cls).join(', ') || 'no classification found') + ')'; });
+                notes.push('Check before filing the letter for ' + g.name + ': ' + names.join('; ') + (odd.length > 5 ? '; and ' + (odd.length - 5) + ' more' : '') +
+                    ' ' + sv(odd.length, 'is', 'are') + ' not classified as Laborer, and the rates in this tool are Laborer rates.');
+            }
+        });
+        return {
+            letters: withFindings.map(function (g) { return { name: g.name, count: g.below.length, text: buildLetter(g, opt) }; }),
+            notes: notes
+        };
     }
 
     // Complaint panel wiring
@@ -1940,19 +2168,33 @@ if (typeof window !== 'undefined') {
             return '<option value="' + esc(e[0]) + '">' + esc(e[1]) + '</option>';
         }).join('');
     }
-    function cxFit() {
-        var ta = $('complaint-text');
+    function cxFit(ta) {
         ta.style.height = 'auto';
         ta.style.height = Math.max(320, Math.min(ta.scrollHeight + 4, Math.round(window.innerHeight * 0.75))) + 'px';
     }
+    function cxFitAll() {
+        document.querySelectorAll('#complaint-letters textarea').forEach(cxFit);
+    }
     function cxRender() {
         var rs = cxScoped();
-        $('complaint-text').value = buildComplaint(rs, {
-            detail: $('cx-detail').checked, benefits: $('cx-benefits').checked, apprentices: $('cx-apprentices').checked
+        var res = buildLetters(rs, {
+            detail: $('cx-detail').checked, benefits: $('cx-benefits').checked,
+            backwages: $('cx-backwages').checked, apprentices: $('cx-apprentices').checked
         });
-        $('cx-scope').textContent = 'Scope: ' + entries(rs.length) + '.';
+        var box = $('complaint-letters');
+        box.innerHTML = res.letters.length ? res.letters.map(function (L, i) {
+            var id = 'complaint-text-' + i;
+            return '<div class="cx-letter"><div class="cx-letter-head"><h3>' + esc(L.name) + ' <span class="muted small">(' + plural(L.count, 'payroll entry below', 'payroll entries below') + ')</span></h3>' +
+                '<button type="button" class="btn btn-primary" data-copy="' + id + '">Copy letter</button></div>' +
+                '<label class="sr-only" for="' + id + '">Complaint letter for ' + esc(L.name) + ', editable</label>' +
+                '<textarea id="' + id + '" class="complaint-text" spellcheck="false"></textarea></div>';
+        }).join('') : '<p class="notice">No letters. No payroll in the selected records shows a total below the prevailing rate.</p>';
+        res.letters.forEach(function (L, i) { $('complaint-text-' + i).value = L.text; });
+        $('cx-notes').innerHTML = res.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('');
+        $('cx-notes').hidden = !res.notes.length;
+        $('cx-scope').textContent = 'Scope: ' + entries(rs.length) + '. Letters: ' + res.letters.length + '.';
         $('copy-status').textContent = '';
-        cxFit();
+        cxFitAll();
     }
     $('complaint-btn').addEventListener('click', function () {
         if (!state.rows.length) return;
@@ -1961,22 +2203,24 @@ if (typeof window !== 'undefined') {
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         $('complaint-section').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
         $('complaint-h').focus({ preventScroll: true });
-        cxFit();
+        cxFitAll();
     });
     $('hide-complaint').addEventListener('click', function () { $('complaint-section').hidden = true; $('complaint-btn').focus(); });
     $('cx-contractor').addEventListener('change', function () { cxFillProjects(); cxRender(); });
-    ['cx-project', 'cx-detail', 'cx-benefits', 'cx-apprentices'].forEach(function (id) { $(id).addEventListener('change', cxRender); });
-    $('complaint-text').addEventListener('input', cxFit);
-    $('copy-complaint').addEventListener('click', function () {
-        var ta = $('complaint-text'), btn = $('copy-complaint');
+    ['cx-project', 'cx-detail', 'cx-benefits', 'cx-backwages', 'cx-apprentices'].forEach(function (id) { $(id).addEventListener('change', cxRender); });
+    $('complaint-letters').addEventListener('input', function (e) { if (e.target.tagName === 'TEXTAREA') cxFit(e.target); });
+    $('complaint-letters').addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-copy]');
+        if (!btn) return;
+        var ta = $(btn.getAttribute('data-copy'));
         function ok() {
             $('copy-status').textContent = 'Copied to the clipboard.';
             btn.textContent = 'Copied';
-            clearTimeout(cxTimer); cxTimer = setTimeout(function () { btn.textContent = 'Copy text'; }, 2500);
+            clearTimeout(btn._t); btn._t = setTimeout(function () { btn.textContent = 'Copy letter'; }, 2500);
         }
         function fallback() {
             ta.focus(); ta.select();
-            try { if (document.execCommand('copy')) { ok(); return; } } catch (e) { /* fall through */ }
+            try { if (document.execCommand('copy')) { ok(); return; } } catch (err) { /* fall through */ }
             $('copy-status').textContent = 'Copy did not work. The text is selected, so press Ctrl+C (or Command+C).';
         }
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(ok, fallback);
