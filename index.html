@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDOL Certified Payroll Extractor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+/* Custom styles for IDOL Certified Payroll Extractor */
+
+body {
+    background-color: #f5f6f8;
+}
+
+/* Drop zone */
+.drop-zone {
+    border: 2px dashed #adb5bd;
+    border-radius: 12px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.drop-zone:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9ff;
+}
+
+.drop-zone.dragover {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.drop-zone i {
+    color: #6c757d;
+}
+
+.drop-zone:hover i {
+    color: #0d6efd;
+}
+
+/* Summary cards */
+.summary-card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.summary-card h3 {
+    font-weight: 700;
+}
+
+/* Results table */
+#results-table {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+#results-table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#results-table td {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#results-table td:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Validation badges */
+.badge-check-pass {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.badge-check-fail {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+/* Processing log */
+#processing-log li {
+    padding: 4px 0;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+</style>
+</head>
+<body>
+    <!-- PDF.js library (loaded before parser.js) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <nav class="navbar navbar-dark bg-dark py-2">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+                IDOL Certified Payroll Extractor
+            </span>
+            <span class="navbar-text d-none d-sm-inline text-secondary small">
+                LDC LMCC
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+
+        <!-- Upload area -->
+        <div id="upload-section">
+            <div id="drop-zone" class="drop-zone text-center p-5 mb-4">
+                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem;"></i>
+                <h5 class="mt-3 mb-1">Drop PDF files here or click to browse</h5>
+                <p class="text-muted mb-0">Upload one or more IDOL Certified Transcript of Payroll PDFs</p>
+                <input type="file" id="file-input" multiple accept=".pdf" style="display:none;">
+            </div>
+        </div>
+
+        <!-- Processing status -->
+        <div id="processing-section" style="display:none;">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        Processing PDFs...
+                    </h6>
+                    <ul id="processing-log" class="list-unstyled mb-0 small"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error messages -->
+        <div id="error-section" style="display:none;">
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Processing Errors</h6>
+                <ul id="error-list" class="mb-0"></ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+
+        <!-- Results summary -->
+        <div id="results-section" style="display:none;">
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 summary-card">
+                        <div class="card-body">
+                            <h3 class="mb-0" id="stat-pdfs">0</h3>
+                            <small class="text-muted">PDFs Processed</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 summary-card">
+                        <div class="card-body">
+                            <h3 class="mb-0" id="stat-employees">0</h3>
+                            <small class="text-muted">Employee Rows</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 summary-card">
+                        <div class="card-body">
+                            <h3 class="mb-0 text-warning" id="stat-warnings">0</h3>
+                            <small class="text-muted">Validation Flags</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center h-100 summary-card">
+                        <div class="card-body">
+                            <h3 class="mb-0 text-danger" id="stat-errors">0</h3>
+                            <small class="text-muted">Processing Errors</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download button -->
+            <div class="d-flex gap-2 mb-3">
+                <button id="download-btn" class="btn btn-primary">
+                    <i class="bi bi-download"></i> Download CSV
+                </button>
+                <button id="reset-btn" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Process More PDFs
+                </button>
+            </div>
+
+            <!-- Validation issues -->
+            <div id="validation-section" style="display:none;">
+                <div class="card border-warning mb-4">
+                    <div class="card-header bg-warning-subtle">
+                        <strong><i class="bi bi-exclamation-triangle"></i> Validation Issues</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">These rows have data that doesn't pass internal consistency checks. The PDF data is included in the CSV as-is — review these rows manually.</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>File</th>
+                                        <th>Employee</th>
+                                        <th>Gross</th>
+                                        <th>Hourly</th>
+                                        <th>Check</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="validation-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results table -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Extracted Data</strong>
+                    <span class="text-muted small">Scroll horizontally to see all columns</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-hover mb-0" id="results-table">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="text-center text-muted small py-3 border-top">
+        IDOL Certified Payroll Extractor - PDF to CSV
+    </footer>
+
+    <!-- Parser and app logic -->
+    <script>
+/**
+ * IDOL Certified Payroll PDF Parser (JavaScript port)
+ * =====================================================
+ *
+ * Extracts structured data from Illinois Department of Labor Certified
+ * Transcript of Payroll forms using PDF.js for coordinate-based text
+ * extraction. Runs entirely in the browser — PDFs never leave the client.
+ *
+ * Ported from the Python version (idol_certified_payroll_parser.py).
+ * Uses the same coordinate-based spatial parsing approach.
+ */
+
+// PDF.js worker setup (loaded from CDN in index.html)
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+// Work Classification column x-ranges (PDF points, page is 720 x 792)
+// Numbers are RIGHT-ALIGNED, so x-center varies with digit count.
+const WC_COL_RANGES = [
+    ["Name",          0,   55],
+    ["PNP",          55,   80],
+    ["Mon",          80,  112],
+    ["Tue",         112,  140],
+    ["Wed",         140,  170],
+    ["Thr",         170,  197],
+    ["Fri",         197,  230],
+    ["Sat",         230,  256],
+    ["Sun",         256,  290],
+    ["Straight",    290,  335],
+    ["OT_Hrs",      335,  375],
+    ["DblTim_Hrs",  375,  417],
+    ["Hourly",      417,  465],
+    ["OT_Rate",     465,  507],
+    ["DblTim_Rate", 507,  539],
+    ["Gross",       539,  591],
+    ["Net",         591,  637],
+    ["NoWork",      637,  670],
+];
+
+const CSV_COLUMNS = [
+    'Source Filename',
+    'Case Number',
+    'Payroll Period Start',
+    'Payroll Period End',
+    'Project Location',
+    'Project Number',
+    'Agency',
+    'Issuing Agency',
+    'Public Body Name',
+    'Company Name',
+    'Contractor Location',
+    'Contractor Contact Name',
+    'Contractor Primary Email',
+    'Name',
+    'Classification',
+    'J',
+    'F',
+    'A',
+    'HourlyWageRate',
+    'OTWageRate',
+    'DblTimWage',
+    'Gross',
+    'Net',
+    'Pension',
+    'Health',
+    'Vacation',
+    'Training',
+    'CALCULATED_total_compensation_rate',
+    'gross_check_pass',
+    'hours_check_pass',
+    'total_comp_check_pass',
+];
+
+// ---------------------------------------------------------------------------
+// Utility functions
+// ---------------------------------------------------------------------------
+
+function assignWcColumn(xCenter) {
+    for (const [name, xmin, xmax] of WC_COL_RANGES) {
+        if (xCenter >= xmin && xCenter < xmax) return name;
+    }
+    return null;
+}
+
+function isNumeric(s) {
+    if (s === null || s === undefined || s === '') return false;
+    return !isNaN(parseFloat(s)) && isFinite(Number(s));
+}
+
+function parseIsoDate(dateStr) {
+    dateStr = (dateStr || '').trim();
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+        const m = parseInt(parts[0], 10);
+        const d = parseInt(parts[1], 10);
+        const y = parseInt(parts[2], 10);
+        if (!isNaN(m) && !isNaN(d) && !isNaN(y)) {
+            return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+    }
+    return dateStr;
+}
+
+// ---------------------------------------------------------------------------
+// PDF.js word extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract words from a PDF page using PDF.js.
+ * Converts PDF.js text items to a format similar to pdfplumber's words:
+ *   { text, x0, top, width, height, fontName }
+ *
+ * PDF.js transform[4] = x (from left)
+ * PDF.js transform[5] = y (from BOTTOM of page)
+ * We convert to top = pageHeight - transform[5] (from top of page)
+ */
+async function extractWordsFromPage(pdf, pageNum) {
+    const page = await pdf.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const viewport = page.getViewport({ scale: 1 });
+    const pageHeight = viewport.height;
+
+    const words = [];
+    for (const item of textContent.items) {
+        if (!item.str || !item.str.trim()) continue;
+        if (typeof item.transform === 'undefined') continue;
+
+        words.push({
+            text: item.str,
+            x0: item.transform[4],
+            top: pageHeight - item.transform[5],
+            width: item.width || 0,
+            height: item.height || 0,
+            fontName: item.fontName || ''
+        });
+    }
+    return words;
+}
+
+// ---------------------------------------------------------------------------
+// Word grouping into visual rows
+// ---------------------------------------------------------------------------
+
+/**
+ * Group words into visual rows by y-proximity.
+ * Words on the same visual row may have slightly different y values
+ * because different fonts have different baselines.
+ *
+ * Returns array of [avgY, [words]] sorted top-to-bottom.
+ */
+function groupWordsIntoRows(words, yTolerance = 3.5) {
+    const sorted = [...words].sort((a, b) => {
+        if (Math.abs(a.top - b.top) > 0.1) return a.top - b.top;
+        return a.x0 - b.x0;
+    });
+
+    const rows = [];
+    let currentY = null;
+    let currentRow = [];
+
+    for (const w of sorted) {
+        if (currentY === null) {
+            currentY = w.top;
+            currentRow = [w];
+        } else if (Math.abs(w.top - currentY) <= yTolerance) {
+            currentRow.push(w);
+        } else {
+            const avgY = currentRow.reduce((s, ww) => s + ww.top, 0) / currentRow.length;
+            rows.push([avgY, currentRow]);
+            currentY = w.top;
+            currentRow = [w];
+        }
+    }
+
+    if (currentRow.length > 0) {
+        const avgY = currentRow.reduce((s, ww) => s + ww.top, 0) / currentRow.length;
+        rows.push([avgY, currentRow]);
+    }
+
+    return rows;
+}
+
+/**
+ * Get all words at a specific y position, optionally filtered by x range.
+ * Returns words sorted by x, joined with spaces.
+ */
+function getWordsAtY(words, yTarget, yTol = 5, xMin = null, xMax = null) {
+    const matches = [];
+    for (const w of words) {
+        if (Math.abs(w.top - yTarget) <= yTol) {
+            if (xMin !== null && w.x0 < xMin) continue;
+            if (xMax !== null && w.x0 > xMax) continue;
+            matches.push(w);
+        }
+    }
+    matches.sort((a, b) => a.x0 - b.x0);
+    return matches.map(w => w.text).join(' ');
+}
+
+/**
+ * Find the y-position of a label by its first word at a known x position.
+ * Handles both single-word items ("Payroll") and multi-word items
+ * ("Payroll Date") by checking startsWith.
+ */
+function findLabelY(words, labelWord, xTarget = 17.928, xTol = 5) {
+    for (const w of words) {
+        const text = w.text.trim();
+        if ((text === labelWord || text.startsWith(labelWord + ' '))
+            && Math.abs(w.x0 - xTarget) <= xTol) {
+            return w.top;
+        }
+    }
+    return null;
+}
+
+/**
+ * Reconstruct full page text from words (for regex matching).
+ */
+function reconstructText(words) {
+    const rows = groupWordsIntoRows(words);
+    const lines = [];
+    for (const [, rowWords] of rows) {
+        const sorted = rowWords.sort((a, b) => a.x0 - b.x0);
+        lines.push(sorted.map(w => w.text).join(' '));
+    }
+    return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Header extraction (page 1)
+// ---------------------------------------------------------------------------
+
+function extractHeaderFields(page1Words) {
+    const words = page1Words;
+    const fullText = reconstructText(words);
+
+    const LEFT_X_MAX = 340;
+    const RIGHT_X_MIN = 340;
+    const VALUE_Y_OFFSET = 18;
+
+    function getLeftValue(labelWord) {
+        const labelY = findLabelY(words, labelWord, 17.928);
+        if (labelY === null) return '';
+        return getWordsAtY(words, labelY + VALUE_Y_OFFSET, 5, null, LEFT_X_MAX).trim();
+    }
+
+    // Case Number
+    let caseNumber = '';
+    const caseMatch = fullText.match(/Case\s*#:\s*(\S+)/);
+    if (caseMatch) caseNumber = caseMatch[1];
+
+    // Payroll Period
+    const payrollDateStr = getLeftValue("Payroll");
+    let periodStart = '', periodEnd = '';
+    if (payrollDateStr) {
+        const m = payrollDateStr.match(/(\d+\/\d+\/\d+)\s+to\s+(\d+\/\d+\/\d+)/);
+        if (m) {
+            periodStart = parseIsoDate(m[1]);
+            periodEnd = parseIsoDate(m[2]);
+        }
+    }
+
+    // Project Location (two lines in right column)
+    const projLocParts = [];
+    const payrollLabelY = findLabelY(words, "Payroll", 17.928);
+    if (payrollLabelY !== null) {
+        const line1 = getWordsAtY(words, payrollLabelY + VALUE_Y_OFFSET, 5, RIGHT_X_MIN);
+        if (line1) projLocParts.push(line1);
+    }
+    const feinLabelY = findLabelY(words, "Contractor", 17.928);
+    if (feinLabelY !== null) {
+        const line2 = getWordsAtY(words, feinLabelY, 5, RIGHT_X_MIN);
+        if (line2) projLocParts.push(line2);
+    }
+    const projectLocation = projLocParts.length > 0 ? projLocParts.join(', ') : '';
+
+    // Project Number
+    const projectNumber = getLeftValue("Project");
+
+    // Agency
+    const agency = getLeftValue("Agency");
+
+    // Issuing Agency
+    const issuingAgency = "Illinois Department of Labor";
+
+    // Public Body Name
+    const publicBodyName = getLeftValue("Public");
+
+    // Company Name
+    const companyName = getLeftValue("Company");
+
+    // Contractor Location (two lines in right column)
+    const contractorLocParts = [];
+    let contLocLabelY = findLabelY(words, "Contractor", 348.336);
+    if (contLocLabelY === null) {
+        // Fallback: same y as Company Name label
+        const companyLabelY = findLabelY(words, "Company", 17.928);
+        if (companyLabelY !== null) contLocLabelY = companyLabelY;
+    }
+    if (contLocLabelY !== null) {
+        const line1 = getWordsAtY(words, contLocLabelY + VALUE_Y_OFFSET, 5, RIGHT_X_MIN);
+        if (line1) contractorLocParts.push(line1);
+    }
+    const contactLabelY = findLabelY(words, "Contact", 17.928);
+    if (contactLabelY !== null) {
+        const line2 = getWordsAtY(words, contactLabelY, 5, RIGHT_X_MIN);
+        if (line2) contractorLocParts.push(line2);
+    }
+    const contractorLocation = contractorLocParts.length > 0 ? contractorLocParts.join(', ') : '';
+
+    // Contractor Contact Name
+    const contractorContact = getLeftValue("Contact");
+
+    // Contractor Primary Email
+    const contractorEmail = getLeftValue("Primary");
+
+    return {
+        'Case Number': caseNumber,
+        'Payroll Period Start': periodStart,
+        'Payroll Period End': periodEnd,
+        'Project Location': projectLocation,
+        'Project Number': projectNumber,
+        'Agency': agency,
+        'Issuing Agency': issuingAgency,
+        'Public Body Name': publicBodyName,
+        'Company Name': companyName,
+        'Contractor Location': contractorLocation,
+        'Contractor Contact Name': contractorContact,
+        'Contractor Primary Email': contractorEmail,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Employee Details extraction
+// ---------------------------------------------------------------------------
+
+function extractEmployeeDetails(allPagesWords) {
+    /**
+     * allPagesWords: array of words arrays (pages 2+, i.e., index 0 = page 2)
+     */
+    const employees = [];
+    let inEdSection = false;
+    let currentEmployee = null;
+    let currentNameParts = [];
+    let currentClassRowParts = [];
+
+    for (const words of allPagesWords) {
+        const rows = groupWordsIntoRows(words);
+
+        for (const [avgY, rowWords] of rows) {
+            const rowTextJoined = rowWords.map(w => w.text).join(' ');
+
+            // Section boundaries
+            if (rowTextJoined.includes('Employee Details')) {
+                inEdSection = true;
+                continue;
+            }
+            if (rowTextJoined.includes('Work Classification')) {
+                if (currentEmployee !== null) {
+                    currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
+                    currentEmployee.classification = joinClassification(currentClassRowParts);
+                    employees.push(currentEmployee);
+                    currentEmployee = null;
+                }
+                return employees;
+            }
+            if (rowTextJoined.includes('I, do hereby state')) {
+                if (currentEmployee !== null) {
+                    currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
+                    currentEmployee.classification = joinClassification(currentClassRowParts);
+                    employees.push(currentEmployee);
+                    currentEmployee = null;
+                }
+                return employees;
+            }
+
+            if (!inEdSection) continue;
+
+            // Skip legend and header rows
+            const skipMarkers = ['G-Gender', 'V-Veteran', 'J-Journeyman',
+                                'F-Foreman', 'A-Apprentice', 'Hispanic', 'Latino',
+                                'Last4SSN', 'Classificati', 'PhoneNumber', 'Address',
+                                'City', 'Race', 'Ethnicity'];
+            if (skipMarkers.some(m => rowTextJoined.includes(m))) continue;
+            if (['on', 'G', 'V', 'J', 'F', 'A'].includes(rowTextJoined.trim())) continue;
+
+            // Detect J/F/A flags (new employee)
+            const jfaWords = {};
+            for (const w of rowWords) {
+                if (Math.abs(w.x0 - 499.104) <= 6 && ['Yes', 'No'].includes(w.text)) {
+                    jfaWords.J = w.text;
+                } else if (Math.abs(w.x0 - 531.648) <= 6 && ['Yes', 'No'].includes(w.text)) {
+                    jfaWords.F = w.text;
+                } else if (Math.abs(w.x0 - 565.056) <= 6 && ['Yes', 'No'].includes(w.text)) {
+                    jfaWords.A = w.text;
+                }
+            }
+
+            if (Object.keys(jfaWords).length > 0) {
+                // Save previous employee
+                if (currentEmployee !== null) {
+                    currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
+                    currentEmployee.classification = joinClassification(currentClassRowParts);
+                    employees.push(currentEmployee);
+                }
+
+                // Start new
+                currentEmployee = {
+                    J: jfaWords.J || '',
+                    F: jfaWords.F || '',
+                    A: jfaWords.A || ''
+                };
+                currentNameParts = [];
+                currentClassRowParts = [];
+                collectEdRowWords(rowWords, currentNameParts, currentClassRowParts);
+            } else {
+                // Continuation line
+                if (currentEmployee !== null) {
+                    collectEdRowWords(rowWords, currentNameParts, currentClassRowParts);
+                }
+            }
+        }
+    }
+
+    // Save last employee
+    if (currentEmployee !== null) {
+        currentEmployee.name = currentNameParts.filter(p => p).join(' ').trim();
+        currentEmployee.classification = joinClassification(currentClassRowParts);
+        employees.push(currentEmployee);
+    }
+
+    return employees;
+}
+
+function collectEdRowWords(rowWords, nameParts, classRowParts) {
+    /**
+     * Collect name and classification words from a single visual row.
+     * Name: x < 95 (covers first name at x=17.9 and last name at x=47-75)
+     * Classification: 145 <= x <= 210
+     */
+    const sorted = [...rowWords].sort((a, b) => a.x0 - b.x0);
+    const nameWordsInRow = [];
+    const classWordsInRow = [];
+
+    for (const w of sorted) {
+        if (w.x0 < 95 && !['Yes', 'No', 'Name'].includes(w.text)) {
+            nameWordsInRow.push(w.text);
+        } else if (w.x0 >= 145 && w.x0 <= 210) {
+            classWordsInRow.push(w.text);
+        }
+    }
+
+    if (nameWordsInRow.length > 0) {
+        nameParts.push(nameWordsInRow.join(' '));
+    }
+    if (classWordsInRow.length > 0) {
+        classRowParts.push(classWordsInRow);
+    }
+}
+
+function joinClassification(classRowParts) {
+    /**
+     * Join classification parts.
+     * Within each row: join with spaces (e.g., "N" + "ALL" = "N ALL")
+     * Between rows: concatenate without spaces (e.g., "ELECTRICIA" + "N ALL"
+     *   = "ELECTRICIAN ALL" — the "N" continues "ELECTRICIA")
+     */
+    if (!classRowParts || classRowParts.length === 0) return '';
+    let result = '';
+    for (const rowWords of classRowParts) {
+        result += rowWords.join(' ');
+    }
+    return result.trim();
+}
+
+// ---------------------------------------------------------------------------
+// Work Classification extraction
+// ---------------------------------------------------------------------------
+
+function extractWorkClassification(allPagesWords) {
+    /**
+     * allPagesWords: array of words arrays (pages 2+)
+     * Returns array of P-row dicts in row order.
+     */
+    const results = [];
+    let inWcSection = false;
+    let currentPRow = null;
+
+    const headerKeywords = new Set(['Name', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat',
+        'Sun', 'Straight', 'Hourly', 'Gross', 'Net', 'Wage',
+        'Rate', 'Dub', 'Dbl', 'Tim', 'Tot', 'OT', 'Wor']);
+
+    for (const words of allPagesWords) {
+        const rows = groupWordsIntoRows(words);
+
+        for (const [avgY, rowWords] of rows) {
+            const rowTextJoined = rowWords.map(w => w.text).join(' ');
+
+            if (rowTextJoined.includes('Work Classification')) {
+                inWcSection = true;
+                continue;
+            }
+            if (rowTextJoined.includes('I, do hereby state')) {
+                inWcSection = false;
+                break;
+            }
+
+            if (!inWcSection) continue;
+
+            // Skip header rows (3+ header keywords)
+            const headerCount = rowWords.filter(w => headerKeywords.has(w.text)).length;
+            if (headerCount >= 3) continue;
+
+            // Check for P/NP/Pension marker at x≈64.728
+            let marker = null;
+            for (const w of rowWords) {
+                if (w.x0 >= 58 && w.x0 <= 75 && ['P', 'NP', 'Pension'].includes(w.text)) {
+                    marker = w.text;
+                    break;
+                }
+            }
+
+            if (marker === 'P') {
+                if (currentPRow !== null) results.push(currentPRow);
+                currentPRow = {};
+                for (const w of rowWords) {
+                    const xc = w.x0 + w.width / 2;
+                    const col = assignWcColumn(xc);
+                    if (col && col !== 'Name' && col !== 'PNP' && isNumeric(w.text)) {
+                        currentPRow[col] = parseFloat(w.text);
+                    }
+                }
+            } else if (marker === 'NP') {
+                // Skip NP rows
+            } else if (marker === 'Pension') {
+                if (currentPRow !== null) {
+                    const sortedWords = [...rowWords].sort((a, b) => a.x0 - b.x0);
+                    const benefits = {};
+                    for (let i = 0; i < sortedWords.length; i++) {
+                        const w = sortedWords[i];
+                        if (['Pension', 'Health', 'Vacation', 'Training'].includes(w.text)) {
+                            for (let j = i + 1; j < sortedWords.length; j++) {
+                                if (isNumeric(sortedWords[j].text)) {
+                                    benefits[w.text] = parseFloat(sortedWords[j].text);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    currentPRow.Pension = benefits.Pension || 0;
+                    currentPRow.Health = benefits.Health || 0;
+                    currentPRow.Vacation = benefits.Vacation || 0;
+                    currentPRow.Training = benefits.Training || 0;
+                }
+            }
+        }
+    }
+
+    if (currentPRow !== null) results.push(currentPRow);
+    return results;
+}
+
+// ---------------------------------------------------------------------------
+// Validation checks
+// ---------------------------------------------------------------------------
+
+function runValidationChecks(row, grossTolerance = 1.0) {
+    const checks = {
+        gross_check_pass: true,
+        hours_check_pass: true,
+        total_comp_check_pass: true
+    };
+
+    // Gross check
+    try {
+        const s = row.Straight || 0;
+        const oh = row.OT_Hrs || 0;
+        const dh = row.DblTim_Hrs || 0;
+        const hw = row.Hourly || 0;
+        const otr = row.OT_Rate || 0;
+        const dtr = row.DblTim_Rate || 0;
+        const gross = row.Gross || 0;
+        const calc = s * hw + oh * otr + dh * dtr;
+        if (Math.abs(calc - gross) > grossTolerance) checks.gross_check_pass = false;
+    } catch (e) { checks.gross_check_pass = false; }
+
+    // Hours check
+    try {
+        const daily = ['Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat', 'Sun']
+            .reduce((sum, c) => sum + (row[c] || 0), 0);
+        const total = (row.Straight || 0) + (row.OT_Hrs || 0) + (row.DblTim_Hrs || 0);
+        if (Math.abs(daily - total) > 0.01) checks.hours_check_pass = false;
+    } catch (e) { checks.hours_check_pass = false; }
+
+    // Total comp rate check
+    try {
+        const hw = row.Hourly || 0;
+        const pen = row.Pension || 0;
+        const hlt = row.Health || 0;
+        const vac = row.Vacation || 0;
+        const trn = row.Training || 0;
+        const calcVal = row.CALCULATED_total_compensation_rate || 0;
+        const total = hw + pen + hlt + vac + trn;
+        if (Math.abs(total - calcVal) > 0.01) checks.total_comp_check_pass = false;
+    } catch (e) { checks.total_comp_check_pass = false; }
+
+    return checks;
+}
+
+// ---------------------------------------------------------------------------
+// Main PDF processing
+// ---------------------------------------------------------------------------
+
+async function processPdf(file) {
+    /**
+     * Process a single PDF file.
+     * Returns array of employee row dicts (one per P-row).
+     */
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    // Pre-load words from all pages
+    const allPagesWords = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const words = await extractWordsFromPage(pdf, i);
+        allPagesWords.push(words);
+    }
+
+    // Extract header (page 1 = index 0)
+    const header = extractHeaderFields(allPagesWords[0]);
+
+    // Extract employee details (pages 2+ = index 1+)
+    const edEmployees = extractEmployeeDetails(allPagesWords.slice(1));
+
+    // Extract work classification (pages 2+ = index 1+)
+    const wcRows = extractWorkClassification(allPagesWords.slice(1));
+
+    // Match by row order and build output rows
+    const rows = [];
+    for (let i = 0; i < wcRows.length; i++) {
+        const wcRow = wcRows[i];
+        const ed = i < edEmployees.length ? edEmployees[i] : {};
+
+        const hourly = wcRow.Hourly || 0;
+        const pension = wcRow.Pension || 0;
+        const health = wcRow.Health || 0;
+        const vacation = wcRow.Vacation || 0;
+        const training = wcRow.Training || 0;
+        const totalComp = Math.round((hourly + pension + health + vacation + training) * 100) / 100;
+
+        const row = {};
+        Object.assign(row, header);
+        row['Source Filename'] = file.name;
+        row['Name'] = ed.name || '';
+        row['Classification'] = ed.classification || '';
+        row['J'] = ed.J || '';
+        row['F'] = ed.F || '';
+        row['A'] = ed.A || '';
+        row['HourlyWageRate'] = wcRow.Hourly !== undefined ? wcRow.Hourly : '';
+        row['OTWageRate'] = wcRow.OT_Rate !== undefined ? wcRow.OT_Rate : '';
+        row['DblTimWage'] = wcRow.DblTim_Rate !== undefined ? wcRow.DblTim_Rate : '';
+        row['Gross'] = wcRow.Gross !== undefined ? wcRow.Gross : '';
+        row['Net'] = wcRow.Net !== undefined ? wcRow.Net : '';
+        row['Pension'] = wcRow.Pension !== undefined ? wcRow.Pension : '';
+        row['Health'] = wcRow.Health !== undefined ? wcRow.Health : '';
+        row['Vacation'] = wcRow.Vacation !== undefined ? wcRow.Vacation : '';
+        row['Training'] = wcRow.Training !== undefined ? wcRow.Training : '';
+        row['CALCULATED_total_compensation_rate'] = totalComp;
+
+        // Validation
+        wcRow.CALCULATED_total_compensation_rate = totalComp;
+        const checks = runValidationChecks(wcRow);
+        row['gross_check_pass'] = checks.gross_check_pass;
+        row['hours_check_pass'] = checks.hours_check_pass;
+        row['total_comp_check_pass'] = checks.total_comp_check_pass;
+
+        rows.push(row);
+    }
+
+    return rows;
+}
+
+async function processMultiplePdfs(files, onProgress = null) {
+    /**
+     * Process multiple PDF files.
+     * onProgress: optional callback(filename, rowCount, error)
+     * Returns { rows: [...], errors: [...] }
+     */
+    const allRows = [];
+    const errors = [];
+
+    for (const file of files) {
+        try {
+            const rows = await processPdf(file);
+            allRows.push(...rows);
+            if (onProgress) onProgress(file.name, rows.length, null);
+        } catch (e) {
+            errors.push({ filename: file.name, error: e.message });
+            if (onProgress) onProgress(file.name, 0, e.message);
+        }
+    }
+
+    return { rows: allRows, errors };
+}
+
+// ---------------------------------------------------------------------------
+// CSV generation
+// ---------------------------------------------------------------------------
+
+function csvEscape(value) {
+    if (value === null || value === undefined) return '';
+    const s = String(value);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+}
+
+function generateCsv(rows) {
+    const lines = [CSV_COLUMNS.join(',')];
+    for (const row of rows) {
+        const values = CSV_COLUMNS.map(col => {
+            const v = row[col];
+            if (typeof v === 'boolean') return v ? 'true' : 'false';
+            if (v === null || v === undefined) return '';
+            return csvEscape(v);
+        });
+        lines.push(values.join(','));
+    }
+    return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Browser namespace
+// ---------------------------------------------------------------------------
+if (typeof window !== 'undefined') {
+    window.IDOLParser = {
+        CSV_COLUMNS: CSV_COLUMNS,
+        processPdf: processPdf,
+        processMultiplePdfs: processMultiplePdfs,
+        generateCsv: generateCsv,
+    };
+}
+
+
+
+</script>
+    <script>
+/**
+ * App logic for IDOL Certified Payroll Extractor
+ * Handles file upload, processing, table rendering, and CSV download.
+ */
+
+(function() {
+    'use strict';
+
+    // State
+    let currentRows = [];
+    let currentErrors = [];
+
+    // DOM elements
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadSection = document.getElementById('upload-section');
+    const processingSection = document.getElementById('processing-section');
+    const processingLog = document.getElementById('processing-log');
+    const errorSection = document.getElementById('error-section');
+    const errorList = document.getElementById('error-list');
+    const resultsSection = document.getElementById('results-section');
+    const resultsTableHead = document.querySelector('#results-table thead');
+    const resultsTableBody = document.querySelector('#results-table tbody');
+    const validationSection = document.getElementById('validation-section');
+    const validationTableBody = document.getElementById('validation-table-body');
+    const downloadBtn = document.getElementById('download-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    // --- File upload handling ---
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+        if (files.length > 0) {
+            handleFiles(files);
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+        if (files.length > 0) {
+            handleFiles(files);
+        }
+    });
+
+    // --- Processing ---
+
+    async function handleFiles(files) {
+        // Show processing section
+        uploadSection.style.display = 'none';
+        processingSection.style.display = 'block';
+        resultsSection.style.display = 'none';
+        errorSection.style.display = 'none';
+        processingLog.innerHTML = '';
+
+        currentRows = [];
+        currentErrors = [];
+
+        for (const file of files) {
+            const li = document.createElement('li');
+            li.innerHTML = `<i class="bi bi-file-pdf"></i> Processing <strong>${escapeHtml(file.name)}</strong>...`;
+            processingLog.appendChild(li);
+
+            try {
+                const rows = await IDOLParser.processPdf(file);
+                currentRows.push(...rows);
+                li.innerHTML = `<i class="bi bi-check-circle text-success"></i> ${escapeHtml(file.name)} &mdash; ${rows.length} employee row(s)`;
+            } catch (e) {
+                currentErrors.push({ filename: file.name, error: e.message });
+                li.innerHTML = `<i class="bi bi-x-circle text-danger"></i> ${escapeHtml(file.name)} &mdash; Error: ${escapeHtml(e.message)}`;
+            }
+        }
+
+        // Show results
+        showResults();
+    }
+
+    // --- Results rendering ---
+
+    function showResults() {
+        processingSection.style.display = 'none';
+
+        // Show errors if any
+        if (currentErrors.length > 0) {
+            errorList.innerHTML = currentErrors.map(e =>
+                `<li><strong>${escapeHtml(e.filename)}</strong>: ${escapeHtml(e.error)}</li>`
+            ).join('');
+            errorSection.style.display = 'block';
+        }
+
+        // Update summary stats
+        document.getElementById('stat-pdfs').textContent =
+            new Set(currentRows.map(r => r['Source Filename'])).size;
+        document.getElementById('stat-employees').textContent = currentRows.length;
+
+        const validationIssues = currentRows.filter(r =>
+            !r.gross_check_pass || !r.hours_check_pass || !r.total_comp_check_pass
+        );
+        document.getElementById('stat-warnings').textContent = validationIssues.length;
+        document.getElementById('stat-errors').textContent = currentErrors.length;
+
+        // Render results table
+        renderTable();
+
+        // Render validation issues
+        renderValidationIssues(validationIssues);
+
+        // Show results section
+        resultsSection.style.display = 'block';
+    }
+
+    function renderTable() {
+        // Header
+        const displayColumns = IDOLParser.CSV_COLUMNS.filter(c => c !== 'Source Filename');
+        const headerHtml = '<tr>' + displayColumns.map(col =>
+            `<th>${escapeHtml(formatColumnName(col))}</th>`
+        ).join('') + '</tr>';
+        resultsTableHead.innerHTML = headerHtml;
+
+        // Body
+        const bodyHtml = currentRows.map(row => {
+            const cells = displayColumns.map(col => {
+                let val = row[col];
+                if (val === null || val === undefined || val === '') {
+                    return '<td class="text-muted">&mdash;</td>';
+                }
+                if (typeof val === 'boolean') {
+                    const cls = val ? 'badge-check-pass' : 'badge-check-fail';
+                    const text = val ? 'PASS' : 'FAIL';
+                    return `<td><span class="badge ${cls}">${text}</span></td>`;
+                }
+                if (typeof val === 'number') {
+                    val = val.toFixed(2);
+                }
+                return `<td title="${escapeHtml(String(val))}">${escapeHtml(String(val))}</td>`;
+            });
+            return '<tr>' + cells.join('') + '</tr>';
+        }).join('');
+        resultsTableBody.innerHTML = bodyHtml;
+    }
+
+    function renderValidationIssues(issues) {
+        if (issues.length === 0) {
+            validationSection.style.display = 'none';
+            return;
+        }
+
+        const bodyHtml = issues.map(row => {
+            const failedChecks = [];
+            if (!row.gross_check_pass) failedChecks.push('Gross');
+            if (!row.hours_check_pass) failedChecks.push('Hours');
+            if (!row.total_comp_check_pass) failedChecks.push('Total Comp');
+
+            return `<tr>
+                <td>${escapeHtml(row['Source Filename'])}</td>
+                <td>${escapeHtml(row['Name'])}</td>
+                <td>${escapeHtml(String(row['Gross']))}</td>
+                <td>${escapeHtml(String(row['HourlyWageRate']))}</td>
+                <td><span class="badge badge-check-fail">${failedChecks.join(', ')}</span></td>
+            </tr>`;
+        }).join('');
+        validationTableBody.innerHTML = bodyHtml;
+        validationSection.style.display = 'block';
+    }
+
+    // --- Download CSV ---
+
+    downloadBtn.addEventListener('click', () => {
+        if (currentRows.length === 0) return;
+
+        const csv = IDOLParser.generateCsv(currentRows);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'idol_certified_payroll_combined.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // --- Reset ---
+
+    resetBtn.addEventListener('click', () => {
+        currentRows = [];
+        currentErrors = [];
+        fileInput.value = '';
+        uploadSection.style.display = 'block';
+        processingSection.style.display = 'none';
+        resultsSection.style.display = 'none';
+        errorSection.style.display = 'none';
+    });
+
+    // --- Utility functions ---
+
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function formatColumnName(col) {
+        // Convert camelCase/Snake to readable
+        return col
+            .replace(/_/g, ' ')
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, c => c.toUpperCase())
+            .replace(/\bCALCULATED\b/, 'Calc')
+            .replace(/\bWageRate\b/, 'Wage')
+            .replace(/\bTimWage\b/, 'Tim')
+            .trim();
+    }
+
+})();
+
+</script>
+</body>
+</html>
