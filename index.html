@@ -13,7 +13,7 @@
   --danger: #b3261e; --danger-bg: #fdecea; --warn: #7a5200; --warn-bg: #fff4d6;
   --ok: #1b6b34; --focus: #0b5cad; --stripe: #f3f5f8; --hover: #e6edf7; --pass-bg: #d1e7dd; --pass-text: #0f5132;
   --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px; --s6: 48px;
-  --fs-sm: 14px; --fs-md: 16px; --fs-lg: 24px; --fs-xl: 32px;
+  --fs-sm: 14px; --fs-md: 16px; --fs-lg: 24px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -44,7 +44,7 @@ footer { padding: var(--s3); text-align: center; color: var(--text-muted); font-
 .card > h2 { margin-bottom: var(--s2); }
 
 /* Buttons */
-.btn { font: 600 var(--fs-sm)/1 var(--font); padding: 12px var(--s2); border-radius: 0; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 40px; }
+.btn { font: 600 var(--fs-sm)/1 var(--font); padding: var(--s1) var(--s2); border-radius: 0; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 40px; }
 .btn:hover { border-color: var(--primary); }
 .btn:active { background: var(--bg); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -73,16 +73,38 @@ progress { width: 100%; height: 8px; margin: var(--s2) 0; accent-color: var(--pr
 .toolbar .actions { display: flex; flex-wrap: wrap; gap: var(--s1); }
 
 /* Dashboard */
-.tiles { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 0; padding: var(--s3); display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
-.tile .label { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
-.tile .value { font-size: var(--fs-xl); font-weight: 700; line-height: 1.2; }
-.tile .value.range { font-size: var(--fs-lg); }
-.tile ul { list-style: none; margin: var(--s1) 0 0; padding: var(--s1) 0 0; border-top: 1px solid var(--border); max-height: 168px; overflow: auto; display: grid; gap: var(--s1); font-size: var(--fs-sm); }
-.tile ul li { display: flex; justify-content: space-between; gap: var(--s1); }
-.tile ul .count { color: var(--text-muted); white-space: nowrap; }
-.tile-stack { display: grid; gap: var(--s2); align-self: start; }
-
+.scope-bar { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; padding: var(--s2) var(--s3); }
+.scope-bar label { font-size: var(--fs-sm); font-weight: 600; }
+.scope-bar select { font: inherit; padding: var(--s1) var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; cursor: pointer; max-width: 100%; }
+.counts { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); padding: var(--s2) var(--s3); }
+.stat { position: relative; min-width: 0; }
+.stat .label { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
+.stat .num { display: block; font-size: var(--fs-lg); font-weight: 700; line-height: 1.2; }
+details.stat > summary { cursor: pointer; list-style: none; }
+details.stat > summary::-webkit-details-marker { display: none; }
+details.stat > summary .label::after { content: " \25BE"; }
+details.stat > summary:hover .num { text-decoration: underline; }
+.stat-list { position: absolute; z-index: 10; top: 100%; left: 0; margin-top: var(--s1); min-width: 280px; max-width: min(520px, calc(100vw - 48px)); background: var(--surface); border: 1px solid var(--border); padding: var(--s2); }
+.stat-list ul { list-style: none; margin: var(--s1) 0 0; padding: 0; max-height: 240px; overflow: auto; display: grid; gap: var(--s1); font-size: var(--fs-sm); }
+.stat-list ul li { display: flex; justify-content: space-between; gap: var(--s2); }
+.stat-list .count { color: var(--text-muted); white-space: nowrap; }
+.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+.tabs [role=tab] { font: 600 var(--fs-md)/1.5 var(--font); padding: var(--s1) var(--s3); background: none; color: var(--text-muted); border: 0; border-bottom: 3px solid transparent; cursor: pointer; min-height: 40px; }
+.tabs [role=tab]:hover { background: var(--hover); color: var(--text); }
+.tabs [role=tab][aria-selected="true"] { color: var(--text); border-bottom-color: var(--primary); }
+details.notices > summary { cursor: pointer; padding: var(--s2); background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); font-weight: 600; }
+details.notices.serious > summary { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+.notices-body { display: grid; gap: var(--s2); margin-top: var(--s2); }
+details.method > summary { cursor: pointer; font-weight: 600; font-size: var(--fs-sm); }
+.st { display: inline-block; min-width: 88px; font-weight: 700; }
+.st-conflict, .st-error { color: var(--danger); }
+.st-duplicate, .st-check, .st-empty { color: var(--warn); }
+.drop-zone.disabled { opacity: .5; cursor: not-allowed; }
+.drop-note { display: block; margin-top: var(--s1); }
+#results-table th:first-child, #results-table td:first-child { position: sticky; left: 0; box-shadow: inset -1px 0 var(--border); }
+#results-table td:first-child { background: var(--surface); z-index: 1; }
+#results-table thead th:first-child { z-index: 3; }
+#results-table tbody tr:hover td:first-child { background: var(--hover); }
 .wage { display: grid; gap: var(--s2); }
 .wage.below { border-left: 8px solid var(--danger); }
 .wage.clear { border-left: 8px solid var(--ok); }
@@ -109,9 +131,7 @@ td.neg { color: var(--danger); font-weight: 600; }
 th.secondary, td.secondary { color: var(--text-muted); }
 th.sec-start, td.sec-start { border-left: 2px solid var(--border); }
 tbody tr:hover td { background: var(--hover); }
-tr.below td { background: var(--danger-bg); }
-tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 0; font-weight: 700; border: 0; font-size: 12px; letter-spacing: .04em; line-height: 1.5; }
+.badge { display: inline-block; padding: 0 var(--s1); border-radius: 0; font-weight: 700; border: 0; font-size: var(--fs-sm); letter-spacing: .04em; line-height: 1.5; }
 .badge.below { color: var(--on-primary); background: var(--danger); }
 .badge.meets { color: var(--on-primary); background: var(--ok); }
 .badge.norate { color: var(--on-primary); background: var(--warn); }
@@ -120,23 +140,23 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
 
 .table-tools { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
 .table-tools input[type=search] { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-width: 260px; min-height: 40px; }
-.table-tools .filter-field { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
+.table-tools .filter-field { display: inline-flex; gap: var(--s1); align-items: center; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
 .table-tools select { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; cursor: pointer; }
 .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 0; overflow: hidden; }
-.seg button { font: 600 var(--fs-sm)/1 var(--font); padding: 12px var(--s2); background: var(--surface); color: var(--text); border: 0; border-right: 1px solid var(--border); cursor: pointer; }
+.seg button { font: 600 var(--fs-sm)/1 var(--font); padding: var(--s1) var(--s2); background: var(--surface); color: var(--text); border: 0; border-right: 1px solid var(--border); cursor: pointer; }
 .seg button:last-child { border-right: 0; }
 .seg button:hover { background: var(--bg); }
 .seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
 .pills { display: flex; flex-wrap: wrap; gap: var(--s1); }
-.pill { display: inline-flex; gap: var(--s1); align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 0; padding: 4px 12px; font-size: var(--fs-sm); }
-.pill button { font: inherit; background: none; border: 0; color: var(--text); cursor: pointer; padding: 0 4px; }
+.pill { display: inline-flex; gap: var(--s1); align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 0; padding: var(--s1) var(--s2); font-size: var(--fs-sm); }
+.pill button { font: inherit; background: none; border: 0; color: var(--text); cursor: pointer; padding: 0 var(--s1); }
 .table-scroll { max-width: 100%; overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 0; }
 .table-foot { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: space-between; margin-top: var(--s2); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Complaint text */
 .cx-options { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: end; margin-bottom: var(--s2); }
-.cx-options label.field { display: grid; gap: 4px; font-size: var(--fs-sm); font-weight: 600; }
+.cx-options label.field { display: grid; gap: var(--s1); font-size: var(--fs-sm); font-weight: 600; }
 .cx-options select { font: inherit; padding: 8px var(--s1); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; max-width: 100%; }
 .cx-checks { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin-bottom: var(--s2); font-size: var(--fs-sm); }
 .cx-checks label { display: inline-flex; gap: var(--s1); align-items: center; cursor: pointer; }
@@ -152,7 +172,7 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
 <body>
 <header class="app-header">
   <h1>IDOL Certified Payroll Extractor</h1>
-  <p class="muted small">Upload CTP PDFs for processing</p>
+  <p class="muted small">Reads Illinois Department of Labor (IDOL) Certified Transcript of Payroll (CTP) PDFs</p>
 </header>
 
 <main id="main">
@@ -161,6 +181,7 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
     <label class="drop-zone" id="drop-zone">
       <span class="title">Drop PDF files here, or click to choose files</span>
       <span class="muted">Select one or more IDOL Certified Transcript of Payroll PDFs.</span>
+      <span class="muted small drop-note">Files are read in your browser and are not uploaded.</span>
       <input type="file" id="file-input" multiple accept=".pdf,application/pdf">
     </label>
     <p id="upload-msg" class="notice danger" role="alert" hidden style="margin-top: var(--s2);"></p>
@@ -180,66 +201,77 @@ tr.below:hover td { background: var(--danger-bg); filter: brightness(.96); }
       </div>
       <div class="actions">
         <button type="button" class="btn btn-primary" id="download-csv">Download CSV</button>
-        <button type="button" class="btn btn-primary" id="download-json">Download JSON</button>
-        <button type="button" class="btn btn-primary" id="complaint-btn" aria-controls="complaint-section">Complaint text</button>
-        <button type="button" class="btn" id="reset-btn">Process more PDFs</button>
+        <button type="button" class="btn" id="download-csv-filtered">Download CSV, filtered rows</button>
+        <button type="button" class="btn" id="download-json">Download JSON</button>
+        <button type="button" class="btn" id="reset-btn">Start over</button>
       </div>
     </div>
     <p id="download-status" class="sr-only" role="status"></p>
 
-    <div id="notices" style="display: grid; gap: var(--s2); margin-top: var(--s2);"></div>
+    <div id="notices" style="margin-top: var(--s2);"></div>
 
     <div id="dashboard" style="display: grid; gap: var(--s2); margin-top: var(--s2);">
-      <div class="tiles" id="tiles"></div>
-      <section class="card wage" id="wage-panel" aria-label="Prevailing wage"></section>
+      <section class="card scope-bar" aria-label="Scope">
+        <label for="classification-filter">Classification</label>
+        <select id="classification-filter"><option value="all">All classifications</option></select>
+        <p class="muted small">Applies to the counts, wage panel, table, and CSV downloads. JSON and complaint letters always use all rows.</p>
+      </section>
+      <section class="card counts" id="counts" aria-label="Counts"></section>
+
+      <div class="tabs" role="tablist" aria-label="Views" id="tablist">
+        <button type="button" role="tab" id="tab-wage" aria-controls="panel-wage" aria-selected="true">Prevailing wage</button>
+        <button type="button" role="tab" id="tab-table" aria-controls="table-section" aria-selected="false" tabindex="-1">Payroll data</button>
+        <button type="button" role="tab" id="tab-complaint" aria-controls="complaint-section" aria-selected="false" tabindex="-1">Complaint letters</button>
+      </div>
+
+      <div id="panel-wage" role="tabpanel" aria-labelledby="tab-wage">
+        <section class="card wage" id="wage-panel" aria-label="Prevailing wage"></section>
+      </div>
+
+      <section class="card" id="table-section" role="tabpanel" aria-labelledby="tab-table" hidden>
+        <h2>Payroll data</h2>
+        <p class="muted small" style="margin-bottom: var(--s2);">One row per employee per payroll report. Key columns come first, and supporting details follow after the divider. The Employee column stays in place when you scroll sideways. The two CSV buttons at the top of the page export either the whole classification scope or only the rows that match the filters below.</p>
+        <div class="table-tools">
+          <label class="sr-only" for="search">Search the table</label>
+          <input type="search" id="search" placeholder="Search employee, contractor, project, body">
+          <div class="seg" role="group" aria-label="Filter by prevailing wage result" id="status-seg"></div>
+          <div class="pills" id="pills"></div>
+        </div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Payroll data table, scrollable">
+          <table id="results-table"><thead></thead><tbody></tbody></table>
+        </div>
+        <div class="table-foot">
+          <p id="row-count" class="muted small"></p>
+          <button type="button" class="btn" id="show-more" hidden>Show more rows</button>
+        </div>
+      </section>
+
+      <section class="card" id="complaint-section" role="tabpanel" aria-labelledby="tab-complaint" hidden>
+        <h2 id="complaint-h">Complaint letters</h2>
+        <p class="muted small" style="margin-bottom: var(--s2);">Plain text for prevailing wage complaints, built from the extracted data. The tool writes one separate letter for each contractor that has findings. Check every figure against the source PDFs, edit the text if you need to, and paste each letter into its complaint narrative field.</p>
+        <div class="cx-options">
+          <label class="field">Contractor<select id="cx-contractor"></select></label>
+          <label class="field">Project<select id="cx-project"></select></label>
+        </div>
+        <div class="cx-checks">
+          <label><input type="checkbox" id="cx-detail" checked> Include worker-by-worker detail</label>
+          <label><input type="checkbox" id="cx-benefits" checked> Note benefits shown as zero where the total is also short</label>
+          <label><input type="checkbox" id="cx-backwages" checked> Include estimated back wages</label>
+          <label><input type="checkbox" id="cx-apprentices"> Include apprentices in the total package finding</label>
+        </div>
+        <p class="muted small">The prevailing rates in this tool are Cook County Laborer rates. Confirm that the workers named in each finding are laborers on a Cook County project. <span id="cx-scope"></span></p>
+        <ul id="cx-notes" class="cx-notes small" aria-label="Notes for the analyst, not part of the letters" hidden></ul>
+        <p class="notice small" id="cx-warn">Changing an option above rewrites the letters and removes any edits you made. The tool asks you to confirm first if you have edited a letter.</p>
+        <div class="cx-actions">
+          <span id="copy-status" class="small muted" role="status"></span>
+        </div>
+        <div id="complaint-letters"></div>
+      </section>
     </div>
-
-    <section class="card" id="table-section" aria-label="Payroll data" style="margin-top: var(--s2);">
-      <h2>Payroll data</h2>
-      <p class="muted small" style="margin-bottom: var(--s2);">One row per employee per payroll report. Key columns come first, and supporting details follow after the divider. CSV export respects the classification filter; JSON export always contains every row and every column.</p>
-      <div class="table-tools">
-        <label class="sr-only" for="search">Search the table</label>
-        <input type="search" id="search" placeholder="Search employee, contractor, project, body">
-        <label class="filter-field" for="classification-filter">Classification
-          <select id="classification-filter"><option value="all">All classifications</option></select>
-        </label>
-        <div class="seg" role="group" aria-label="Filter by prevailing wage result" id="status-seg"></div>
-        <div class="pills" id="pills"></div>
-      </div>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Payroll data table, scrollable">
-        <table id="results-table"><thead></thead><tbody></tbody></table>
-      </div>
-      <div class="table-foot">
-        <p id="row-count" class="muted small"></p>
-        <button type="button" class="btn" id="show-more" hidden>Show more rows</button>
-      </div>
-    </section>
-
-    <section class="card" id="complaint-section" aria-labelledby="complaint-h" style="margin-top: var(--s2);" hidden>
-      <h2 id="complaint-h" tabindex="-1">Complaint text</h2>
-      <p class="muted small" style="margin-bottom: var(--s2);">Plain text for prevailing wage complaints, built from the extracted data. The tool writes one separate letter for each contractor that has findings. Check every figure against the source PDFs, edit the text if you need to, and paste each letter into its complaint narrative field.</p>
-      <div class="cx-options">
-        <label class="field">Contractor<select id="cx-contractor"></select></label>
-        <label class="field">Project<select id="cx-project"></select></label>
-      </div>
-      <div class="cx-checks">
-        <label><input type="checkbox" id="cx-detail" checked> Include worker-by-worker detail</label>
-        <label><input type="checkbox" id="cx-benefits" checked> Note benefits shown as zero where the total is also short</label>
-        <label><input type="checkbox" id="cx-backwages" checked> Include estimated back wages</label>
-        <label><input type="checkbox" id="cx-apprentices"> Include apprentices in the total package finding</label>
-      </div>
-      <p class="muted small">The prevailing rates in this tool are Cook County Laborer rates. Confirm that the workers named in each finding are laborers on a Cook County project. Changing an option rewrites the letters and removes any edits you made. <span id="cx-scope"></span></p>
-      <ul id="cx-notes" class="cx-notes small" aria-label="Notes for the analyst, not part of the letters" hidden></ul>
-      <div class="cx-actions">
-        <button type="button" class="btn" id="hide-complaint">Hide</button>
-        <span id="copy-status" class="small muted" role="status"></span>
-      </div>
-      <div id="complaint-letters"></div>
-    </section>
   </section>
 </main>
 
-<footer>LDC LMCC Research Department</footer>
+<footer>LDC LMCC Research Department &middot; Version <span id="app-version"></span></footer>
 
 <script>
 /**
@@ -1223,7 +1255,8 @@ if (typeof window !== 'undefined') {
 
     var $ = function (id) { return document.getElementById(id); };
     var NOT_FOUND = 'Not found in PDF';
-    var APP_VERSION = '3.0.0';
+    var APP_VERSION = '5.4.0';
+    $('app-version').textContent = APP_VERSION;
     var PAGE = 500;
 
     // ----- Column presentation -----
@@ -1251,7 +1284,7 @@ if (typeof window !== 'undefined') {
         'CALCULATED_total_compensation_rate': 'Calculated total rate',
         'Applicable Prevailing Wage': 'Prevailing total rate',
         'Comp vs Prevailing Diff': 'Difference',
-        'prevailing_wage_check_pass': 'Prevailing wage check',
+        'prevailing_wage_check_pass': 'Wage result',
         'Prevailing Wage Posted Date': 'Prevailing rate posted', 'Case Number': 'Case number',
         'Source Filename': 'Source file', 'Agency': 'Agency', 'Issuing Agency': 'Issuing agency',
         'OTWageRate': 'Overtime rate', 'DblTimWage': 'Double-time rate', 'Gross': 'Gross pay', 'Net': 'Net pay',
@@ -1274,6 +1307,17 @@ if (typeof window !== 'undefined') {
         var next = wanted.filter(function (c) { return current.indexOf(c) >= 0; })
             .concat(current.filter(function (c) { return wanted.indexOf(c) < 0; }));
         cols.splice.apply(cols, [0, cols.length].concat(next));
+    })();
+
+    // Table order (the CSV keeps its own column order, set above).
+    var TABLE_PRIMARY = ['Name', 'Company Name', 'Payroll Period Start', 'Payroll Period End', 'Classification',
+        'CALCULATED_total_compensation_rate', 'Applicable Prevailing Wage', 'Comp vs Prevailing Diff', 'prevailing_wage_check_pass'];
+    var TABLE_COLUMNS = (function () {
+        var cur = window.IDOLParser.CSV_COLUMNS.slice();
+        var wanted = TABLE_PRIMARY.concat(['HourlyWageRate', 'Pension', 'Health', 'Vacation', 'Training', 'source_line',
+            'Public Body Name', 'Project Number', 'Project Location']);
+        return wanted.filter(function (c) { return cur.indexOf(c) >= 0; })
+            .concat(cur.filter(function (c) { return wanted.indexOf(c) < 0; }));
     })();
 
     // ----- State -----
@@ -1351,6 +1395,7 @@ if (typeof window !== 'undefined') {
     if (typeof pdfjsLib === 'undefined') {
         uploadMsg.textContent = 'The PDF reading library did not load. It is fetched from the internet, so check your connection and reload this page.';
         uploadMsg.hidden = false;
+        fileInput.disabled = true; dropZone.classList.add('disabled');
     }
 
     ['dragenter', 'dragover'].forEach(function (ev) {
@@ -1363,6 +1408,7 @@ if (typeof window !== 'undefined') {
     fileInput.addEventListener('change', function () { pick(Array.from(fileInput.files)); });
 
     function pick(files) {
+        if (typeof pdfjsLib === 'undefined') return;
         var pdfs = files.filter(function (f) { return f.name.toLowerCase().endsWith('.pdf'); });
         if (pdfs.length === 0) {
             uploadMsg.textContent = 'No PDF files were selected. Please choose files that end in .pdf.';
@@ -1373,6 +1419,11 @@ if (typeof window !== 'undefined') {
         handleFiles(pdfs);
     }
 
+    function logLine(li, status, text) {
+        li.textContent = '';
+        var st = document.createElement('strong'); st.className = 'st st-' + status.toLowerCase(); st.textContent = status;
+        li.appendChild(st); li.appendChild(document.createTextNode(' ' + text));
+    }
     async function handleFiles(files) {
         $('upload-section').hidden = true;
         $('results-section').hidden = true;
@@ -1391,7 +1442,7 @@ if (typeof window !== 'undefined') {
             var file = files[i];
             $('processing-title').textContent = 'Reading PDF ' + (i + 1) + ' of ' + files.length;
             var li = document.createElement('li');
-            li.textContent = 'Reading ' + file.name + '…';
+            logLine(li, 'Reading', file.name);
             log.appendChild(li);
             try {
                 var rows = await IDOLParser.processPdf(file);
@@ -1401,13 +1452,13 @@ if (typeof window !== 'undefined') {
                 if (!rows.length) {
                     // No rows extracted — nothing to dedup, record as empty
                     state.files.push({ filename: file.name, rowCount: 0, error: null });
-                    li.textContent = file.name + ': no employee rows found';
+                    logLine(li, 'Empty', file.name + ': no employee rows found');
                 } else if (!caseNum) {
                     // No readable Case Number — can't check for duplicates
                     state.rows.push.apply(state.rows, rows);
                     state.files.push({ filename: file.name, rowCount: rows.length, error: null });
                     state.noCaseNumber.push({ filename: file.name, rowCount: rows.length });
-                    li.textContent = file.name + ': ' + plural(rows.length, 'employee row') + ' (no Case Number read, not checked for duplicates)';
+                    logLine(li, 'Check', file.name + ': ' + plural(rows.length, 'employee row') + ' (no Case Number read, not checked for duplicates)');
                 } else if (seenByCase.has(caseNum)) {
                     // Case Number already seen — compare signatures
                     var variants = seenByCase.get(caseNum);
@@ -1419,26 +1470,26 @@ if (typeof window !== 'undefined') {
                         // Same case number AND same data — duplicate
                         state.duplicates.push({ filename: file.name, caseNumber: caseNum, originalFilename: match.filename });
                         state.files.push({ filename: file.name, rowCount: 0, error: null, skippedAsDuplicate: true, duplicateOf: match.filename });
-                        li.textContent = file.name + ': duplicate of ' + match.filename + ' (Case ' + caseNum + '), skipped';
+                        logLine(li, 'Duplicate', file.name + ': duplicate of ' + match.filename + ' (Case ' + caseNum + '), skipped');
                     } else {
                         // Same case number, different data — conflict, keep for review
                         variants.push({ filename: file.name, signature: sig });
                         state.rows.push.apply(state.rows, rows);
                         state.files.push({ filename: file.name, rowCount: rows.length, error: null, conflictWithSameCaseNumber: true, conflictsWith: variants[0].filename });
                         state.conflicts.push({ filename: file.name, caseNumber: caseNum, conflictsWith: variants[0].filename });
-                        li.textContent = file.name + ': ' + plural(rows.length, 'employee row') + ' — CONFLICT (same Case ' + caseNum + ' as ' + variants[0].filename + ', different data), kept for review';
+                        logLine(li, 'Conflict', file.name + ': ' + plural(rows.length, 'employee row') + ' — CONFLICT (same Case ' + caseNum + ' as ' + variants[0].filename + ', different data), kept for review');
                     }
                 } else {
                     // New case number — record and keep
                     seenByCase.set(caseNum, [{ filename: file.name, signature: sig }]);
                     state.rows.push.apply(state.rows, rows);
                     state.files.push({ filename: file.name, rowCount: rows.length, error: null });
-                    li.textContent = file.name + ': ' + plural(rows.length, 'employee row');
+                    logLine(li, 'Read', file.name + ': ' + plural(rows.length, 'employee row'));
                 }
             } catch (e) {
                 state.errors.push({ filename: file.name, error: e.message });
                 state.files.push({ filename: file.name, rowCount: 0, error: e.message });
-                li.textContent = file.name + ': could not be read (' + e.message + ')';
+                logLine(li, 'Error', file.name + ': could not be read (' + e.message + ')');
             }
             bar.value = i + 1;
         }
@@ -1449,7 +1500,7 @@ if (typeof window !== 'undefined') {
     function summarize(rows) {
         var bodies = new Map(), projects = new Map(), employees = new Map(), contractors = new Map(), under = new Map();
         var min = null, max = null;
-        var w = { evaluated: 0, below: 0, meets: 0, norate: 0, shortfalls: [], belowEmployees: new Set() };
+        var w = { evaluated: 0, below: 0, meets: 0, norate: 0, shortfalls: [], belowEmployees: new Set(), backWages: 0, noHours: 0 };
 
         rows.forEach(function (r) {
             var bk = bodyKey(r), pk = projectKey(r), ek = keyOf(r['Name']), ck = keyOf(r['Company Name']);
@@ -1501,6 +1552,7 @@ if (typeof window !== 'undefined') {
                     if (ek) w.belowEmployees.add(ek);
                     var gap = isNum(r['Comp vs Prevailing Diff']) ? -r['Comp vs Prevailing Diff'] : 0;
                     w.shortfalls.push(gap);
+                    var hrs = hoursOf(r); if (hrs > 0) { w.backWages += round2(gap * hrs); } else { w.noHours++; }
                     var uk = ck || '(none)';
                     var u = under.get(uk);
                     if (!u) { u = { name: norm(r['Company Name']) || NOT_FOUND, rows: 0, employees: new Set(), max: 0 }; under.set(uk, u); }
@@ -1539,21 +1591,20 @@ if (typeof window !== 'undefined') {
         }).join('');
 
         var period = S.min && S.max
-            ? '<div class="value range">' + esc(fmtDate(S.min)) + ' to ' + esc(fmtDate(S.max)) + '</div><div class="muted small">' + plural(daysBetween(S.min, S.max), 'day') + ' covered</div>'
-            : '<div class="value range">Not found</div><div class="muted small">No payroll dates were read from the PDFs.</div>';
+            ? '<span class="num range">' + esc(fmtDate(S.min)) + ' to ' + esc(fmtDate(S.max)) + '</span><div class="muted small">' + plural(daysBetween(S.min, S.max), 'day') + ' covered</div>'
+            : '<span class="num range">Not found</span><div class="muted small">No payroll dates were read from the PDFs.</div>';
 
-        $('tiles').innerHTML =
-            '<article class="tile"><div class="label">Public bodies</div><div class="value">' + S.bodies.size + '</div>' +
-            '<ul aria-label="Public bodies. Choose one to filter the table." tabindex="0">' + bodyItems + '</ul></article>' +
-            '<article class="tile"><div class="label">Projects</div><div class="value">' + S.projects.size + '</div>' +
-            '<ul aria-label="Projects. Choose one to filter the table." tabindex="0">' + projItems + '</ul></article>' +
-            '<article class="tile"><div class="label">Contractors</div><div class="value">' + S.contractors.size + '</div>' +
-            '<ul aria-label="Contractors. Choose one to filter the table." tabindex="0">' + contractorItems + '</ul></article>' +
-            '<div class="tile-stack">' +
-            '<article class="tile"><div class="label">Employees</div><div class="value">' + S.employees.size + '</div>' +
-            '<div class="muted small">Unique names, across ' + plural(state.rows.length, 'payroll row') + '</div></article>' +
-            '<article class="tile"><div class="label">Time period</div>' + period + '</article>' +
-            '</div>';
+        function listStat(label, n, items) {
+            return '<details class="stat"><summary><span class="label">' + label + '</span><span class="num">' + n + '</span></summary>' +
+                '<div class="stat-list"><p class="muted small">Select a name to filter the table.</p>' +
+                '<ul aria-label="' + label + '. Choose one to filter the table." tabindex="0">' + items + '</ul></div></details>';
+        }
+        $('counts').innerHTML =
+            listStat('Public bodies', S.bodies.size, bodyItems) + listStat('Projects', S.projects.size, projItems) +
+            listStat('Contractors', S.contractors.size, contractorItems) +
+            '<div class="stat"><span class="label">Employees</span><span class="num">' + S.employees.size + '</span>' +
+            '<div class="muted small">Unique names, across ' + plural(state.rows.length, 'payroll row') + '</div></div>' +
+            '<div class="stat"><span class="label">Time period</span>' + period + '</div>';
 
         // Prevailing wage panel
         var w = S.wage, panel = $('wage-panel');
@@ -1564,11 +1615,16 @@ if (typeof window !== 'undefined') {
         } else if (w.below === 0) {
             headline = 'All ' + plural(w.evaluated, 'compared payroll row') + ' meet or exceed the prevailing total rate.';
         } else {
-            headline = '<span class="neg">' + w.below + '</span> of ' + w.evaluated + ' compared payroll rows are below the prevailing total rate.';
+            var backText = w.backWages > 0 ? money(round2(w.backWages)) : 'No hours shown';
+            headline = w.belowEmployees.size > 0
+                ? '<span class="neg">' + plural(w.belowEmployees.size, 'employee') + '</span> at ' + plural(S.under.size, 'contractor') + ' ' + (w.belowEmployees.size === 1 ? 'was' : 'were') +
+                  ' paid below the prevailing total rate on ' + w.below + ' of ' + w.evaluated + ' compared payroll rows.'
+                : '<span class="neg">' + w.below + '</span> of ' + w.evaluated + ' compared payroll rows are below the prevailing total rate.';
             var uRows = Array.from(S.under.values()).sort(function (a, b) { return b.rows - a.rows; });
             body = '<div class="facts">' +
                 fact('Employees affected', S.wage.belowEmployees.size) +
                 fact('Contractors affected', S.under.size) +
+                fact('Estimated back wages', backText) +
                 fact('Largest shortfall per hour', money(S.maxGap)) +
                 fact('Average shortfall per hour', money(S.avgGap)) + '</div>' +
                 '<div class="mini-wrap" tabindex="0" role="region" aria-label="Underpayment by contractor"><table><thead><tr>' +
@@ -1599,7 +1655,10 @@ if (typeof window !== 'undefined') {
                 ' could not be compared because no prevailing rate is on file for the payroll start date.' +
                 ' <button type="button" class="link-btn" data-status="norate">Show these rows</button></p>';
         }
-        notes += '<p class="muted small">Comparison: the calculated total rate (hourly wage plus pension, health, vacation, and training) against the Cook County Laborer total package posted on or before the payroll period start date. A row is flagged when it falls short by more than one cent.</p>';
+        notes += '<details class="method"><summary>Method</summary><p class="muted small">Comparison: the calculated total rate (hourly wage plus pension, health, vacation, and training) against the Cook County Laborer total package posted on or before the payroll period start date. A row is flagged when it falls short by more than one cent.</p>' +
+            (w.below > 0 ? '<p class="muted small">Estimated back wages: the hourly shortfall times the hours worked in each below-rate payroll row, with no overtime or double-time premium added.' +
+                (w.noHours ? ' ' + plural(w.noHours, 'below-rate row') + ' show no hours and are not included.' : '') +
+                ' Complaint letter totals can differ, for example when the apprentice option is off.</p>' : '') + '</details>';
 
         panel.innerHTML =
             '<div class="wage-head"><div><h2>Prevailing wage</h2><p class="headline">' + headline + '</p></div>' +
@@ -1618,10 +1677,10 @@ if (typeof window !== 'undefined') {
         if (CHECKS.indexOf(col) >= 0) return 'check';
         return 'text';
     }
-    function isSecondary(col) { return PRIMARY.indexOf(col) < 0; }
+    function isSecondary(col) { return TABLE_PRIMARY.indexOf(col) < 0; }
 
     function renderHead() {
-        var cols = IDOLParser.CSV_COLUMNS, firstSec = true;
+        var cols = TABLE_COLUMNS, firstSec = true;
         $('results-table').tHead.innerHTML = '<tr>' + cols.map(function (col) {
             var t = typeOf(col), cls = [];
             if (t === 'money' || t === 'diff') cls.push('num');
@@ -1640,7 +1699,7 @@ if (typeof window !== 'undefined') {
         var inner, empty = (v === null || v === undefined || v === '');
         if (t === 'wage') {
             var st = wageStatus(r);
-            var txt = st === 'below' ? 'FAIL' : (st === 'meets' ? 'PASS' : 'No rate');
+            var txt = st === 'below' ? 'Below' : (st === 'meets' ? 'Meets' : 'No rate');
             return '<td class="' + cls.join(' ') + '"><span class="badge ' + st + '">' + txt + '</span></td>';
         }
         if (t === 'sourceline') {
@@ -1699,7 +1758,7 @@ if (typeof window !== 'undefined') {
 
     function renderTable() {
         renderHead();
-        var cols = IDOLParser.CSV_COLUMNS;
+        var cols = TABLE_COLUMNS;
         var firstSec = cols.filter(isSecondary)[0];
         var rows = filteredRows();
         var shown = rows.slice(0, state.limit);
@@ -1714,11 +1773,19 @@ if (typeof window !== 'undefined') {
         more.hidden = shown.length >= rows.length;
         more.textContent = 'Show ' + Math.min(PAGE, rows.length - shown.length) + ' more rows';
         renderControls();
+        updateExportLabels(rows.length);
+    }
+
+    function updateExportLabels(filteredCount) {
+        $('download-csv').textContent = 'Download CSV, ' + plural(classificationFilteredRows().length, 'row');
+        $('download-csv-filtered').textContent = 'Download CSV, ' + plural(filteredCount, 'filtered row');
+        $('download-csv-filtered').disabled = filteredCount === 0;
+        $('download-json').textContent = 'Download JSON, ' + plural(state.rows.length, 'row');
     }
 
     function renderControls() {
         var f = state.filters, S = state.summary, w = S.wage;
-        var opts = [['all', 'All rows (' + state.rows.length + ')'], ['below', 'Below prevailing (' + w.below + ')'], ['norate', 'No rate (' + w.norate + ')']];
+        var opts = [['all', 'All rows (' + state.rows.length + ')'], ['below', 'Below prevailing (' + w.below + ')'], ['meets', 'Meets (' + w.meets + ')'], ['norate', 'No rate (' + w.norate + ')']];
         $('status-seg').innerHTML = opts.map(function (o) {
             return '<button type="button" data-status="' + o[0] + '" aria-pressed="' + (f.status === o[0]) + '">' + esc(o[1]) + '</button>';
         }).join('');
@@ -1800,7 +1867,8 @@ if (typeof window !== 'undefined') {
     $('show-more').addEventListener('click', function () { state.limit += PAGE; renderTable(); });
     function scrollToTable() {
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        $('table-section').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+        showTab('table');
+        $('tab-table').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     }
 
     // ----- Show results -----
@@ -1811,7 +1879,7 @@ if (typeof window !== 'undefined') {
         state.sort = { key: null, dir: 1 }; state.limit = PAGE;
         $('search').value = '';
         $('classification-filter').value = 'all';
-        $('complaint-section').hidden = true; cxReady = false;
+        cxReady = false; showTab('wage');
         var cols = IDOLParser.CSV_COLUMNS;
         state.index = state.rows.map(function (r) {
             return { row: r, text: cols.map(function (c) { var v = r[c]; return (v === null || v === undefined || typeof v === 'boolean') ? '' : String(v); }).join(' ').toLowerCase() };
@@ -1848,11 +1916,21 @@ if (typeof window !== 'undefined') {
             notes += '<div class="notice"><strong>No employee rows were found in:</strong><ul>' +
                 empty.map(function (f) { return '<li>' + esc(f.filename) + '</li>'; }).join('') + '</ul></div>';
         }
+        if (notes) {
+            var parts = [];
+            if (state.errors.length) parts.push(plural(state.errors.length, 'file') + ' could not be read');
+            if (state.conflicts.length) parts.push(plural(state.conflicts.length, 'conflict'));
+            if (state.duplicates.length) parts.push(plural(state.duplicates.length, 'duplicate') + ' skipped');
+            if (state.noCaseNumber.length) parts.push(plural(state.noCaseNumber.length, 'file') + ' without a Case Number');
+            if (empty.length) parts.push(plural(empty.length, 'file') + ' with no employee rows');
+            var serious = state.errors.length > 0 || state.conflicts.length > 0;
+            notes = '<details class="notices' + (serious ? ' serious' : '') + '"' + (serious ? ' open' : '') + '><summary>Notices: ' + parts.join('; ') + '</summary><div class="notices-body">' + notes + '</div></details>';
+        }
         $('notices').innerHTML = notes;
 
         var hasRows = state.rows.length > 0;
-        $('dashboard').hidden = !hasRows; $('table-section').hidden = !hasRows;
-        $('download-csv').disabled = !hasRows; $('download-json').disabled = !hasRows; $('complaint-btn').disabled = !hasRows;
+        $('dashboard').hidden = !hasRows;
+        $('download-csv').disabled = !hasRows; $('download-json').disabled = !hasRows; 
         if (hasRows) { renderDashboard(); renderTable(); }
         window.scrollTo(0, 0);
     }
@@ -1872,6 +1950,13 @@ if (typeof window !== 'undefined') {
         var rows = classificationFilteredRows();
         download(IDOLParser.generateCsv(rows), 'text/csv;charset=utf-8;', 'idol_certified_payroll_combined.csv', 'CSV');
         $('download-status').textContent = 'CSV exported ' + rows.length + ' of ' + state.rows.length + ' rows' + (rows.length !== state.rows.length ? ' (classification-filtered; JSON export remains unfiltered).' : '.');
+    });
+    $('download-csv-filtered').addEventListener('click', function () {
+        if (!state.rows.length) return;
+        var rows = filteredRows();
+        if (!rows.length) return;
+        download(IDOLParser.generateCsv(rows), 'text/csv;charset=utf-8;', 'idol_certified_payroll_filtered.csv', 'CSV');
+        $('download-status').textContent = 'CSV exported ' + plural(rows.length, 'filtered row') + ' of ' + state.rows.length + '.';
     });
     $('download-json').addEventListener('click', function () {
         if (!state.rows.length) return;
@@ -2330,6 +2415,7 @@ if (typeof window !== 'undefined') {
         document.querySelectorAll('#complaint-letters textarea').forEach(cxFit);
     }
     function cxRender() {
+        cxDirty = false;
         var rs = cxScoped();
         var res = buildLetters(rs, {
             detail: $('cx-detail').checked, benefits: $('cx-benefits').checked,
@@ -2350,19 +2436,60 @@ if (typeof window !== 'undefined') {
         $('copy-status').textContent = '';
         cxFitAll();
     }
-    $('complaint-btn').addEventListener('click', function () {
-        if (!state.rows.length) return;
-        if (!cxReady) { cxFillContractors(); cxRender(); cxReady = true; }
-        $('complaint-section').hidden = false;
-        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        $('complaint-section').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-        $('complaint-h').focus({ preventScroll: true });
-        cxFitAll();
+    // ----- Tabs -----
+    var TABS = ['wage', 'table', 'complaint'], PANELS = { wage: 'panel-wage', table: 'table-section', complaint: 'complaint-section' };
+    function showTab(name, focusTab) {
+        TABS.forEach(function (t) {
+            var on = t === name;
+            $('tab-' + t).setAttribute('aria-selected', String(on));
+            $('tab-' + t).tabIndex = on ? 0 : -1;
+            $(PANELS[t]).hidden = !on;
+        });
+        if (name === 'complaint' && state.rows.length) {
+            if (!cxReady) { cxFillContractors(); cxRender(); cxReady = true; cxRemember(); }
+            cxFitAll();
+        }
+        if (focusTab) $('tab-' + name).focus();
+    }
+    TABS.forEach(function (t, i) {
+        $('tab-' + t).addEventListener('click', function () { showTab(t); });
+        $('tab-' + t).addEventListener('keydown', function (e) {
+            var n = null;
+            if (e.key === 'ArrowRight') n = (i + 1) % TABS.length;
+            else if (e.key === 'ArrowLeft') n = (i + TABS.length - 1) % TABS.length;
+            else if (e.key === 'Home') n = 0;
+            else if (e.key === 'End') n = TABS.length - 1;
+            if (n !== null) { e.preventDefault(); showTab(TABS[n], true); }
+        });
     });
-    $('hide-complaint').addEventListener('click', function () { $('complaint-section').hidden = true; $('complaint-btn').focus(); });
-    $('cx-contractor').addEventListener('change', function () { cxFillProjects(); cxRender(); });
-    ['cx-project', 'cx-detail', 'cx-benefits', 'cx-backwages', 'cx-apprentices'].forEach(function (id) { $(id).addEventListener('change', cxRender); });
-    $('complaint-letters').addEventListener('input', function (e) { if (e.target.tagName === 'TEXTAREA') cxFit(e.target); });
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('details.stat[open]').forEach(function (d) {
+            if (!d.contains(e.target) || e.target.closest('button')) d.open = false;
+        });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('details.stat[open]').forEach(function (d) { d.open = false; var sm = d.querySelector('summary'); if (sm) sm.focus(); });
+    });
+    // Editing guard for the complaint letters.
+    var cxDirty = false, cxPrev = {};
+    var CX_SELECTS = ['cx-contractor', 'cx-project'], CX_CHECKS = ['cx-detail', 'cx-benefits', 'cx-backwages', 'cx-apprentices'];
+    function cxRemember() {
+        CX_SELECTS.forEach(function (id) { cxPrev[id] = $(id).value; });
+        CX_CHECKS.forEach(function (id) { cxPrev[id] = $(id).checked; });
+    }
+    function cxGuard(id, apply) {
+        $(id).addEventListener('change', function (e) {
+            if (cxDirty && !window.confirm('Changing this option rewrites the letters and removes your edits. Continue?')) {
+                if (e.target.type === 'checkbox') e.target.checked = cxPrev[id]; else e.target.value = cxPrev[id];
+                return;
+            }
+            apply(); cxRemember();
+        });
+    }
+    cxGuard('cx-contractor', function () { cxFillProjects(); cxRender(); });
+    ['cx-project', 'cx-detail', 'cx-benefits', 'cx-backwages', 'cx-apprentices'].forEach(function (id) { cxGuard(id, cxRender); });
+    $('complaint-letters').addEventListener('input', function (e) { if (e.target.tagName === 'TEXTAREA') { cxFit(e.target); cxDirty = true; } });
     $('complaint-letters').addEventListener('click', function (e) {
         var btn = e.target.closest('button[data-copy]');
         if (!btn) return;
@@ -2383,12 +2510,13 @@ if (typeof window !== 'undefined') {
 
     // ----- Reset -----
     $('reset-btn').addEventListener('click', function () {
+        if (!window.confirm('Start over? This clears all results and any edits to the complaint letters. Files you already downloaded are not affected.')) return;
         state.rows = []; state.errors = []; state.files = []; state.index = [];
         state.duplicates = []; state.conflicts = []; state.noCaseNumber = [];
         fileInput.value = '';
         uploadMsg.hidden = true;
         $('results-section').hidden = true;
-        $('complaint-section').hidden = true; cxReady = false;
+        showTab('wage'); cxReady = false;
         $('processing-section').hidden = true;
         $('upload-section').hidden = false;
         window.scrollTo(0, 0);
