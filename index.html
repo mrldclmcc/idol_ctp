@@ -5,174 +5,320 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>IDOL Certified Payroll Extractor</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<!-- ==================================================================
+     PREVAILING WAGE RATES  —  Cook County Laborer total package
+     ------------------------------------------------------------------
+     When IDOL posts a NEW rate, add ONE line to the list below,
+     in date order (oldest first):
+
+         { posted: 'YYYY-MM-DD', totalPackage: 00.00 },
+
+     • "posted"       = the date IDOL posted the rate (YYYY-MM-DD)
+     • "totalPackage" = the full hourly rate (wages + all fringes)
+
+     The tool compares each payroll against the most recent rate
+     posted on or before the payroll's START date. You only need to
+     add a line when the dollar amount actually changes — if IDOL
+     re-posts the same rate, skip it.
+     ================================================================== -->
+<script>
+var PREVAILING_WAGES = [
+    { posted: '2024-01-25', totalPackage: 83.09 },
+    { posted: '2024-07-15', totalPackage: 85.69 },
+    { posted: '2025-07-15', totalPackage: 88.34 },
+    { posted: '2026-07-15', totalPackage: 92.11 },
+    //  ↓  add new rates here, in date order  ↓
+];
+</script>
+
+<script src="pdf.min.js"></script>
 <style>
+/* ==========================================================================
+   Design system
+   Spacing: multiples of 8px.  Type: four sizes plus one display size.
+   Typefaces: a system serif for reading and headlines, a system sans for
+   controls and tables. No web fonts, so the file works offline.
+   ========================================================================== */
 :root {
-  --bg: #f6f7f9; --surface: #ffffff; --text: #1a1f26; --text-muted: #4d5866;
-  --border: #d3d9e0; --primary: #0b5cad; --on-primary: #ffffff; --primary-hover: #094a8d;
-  --danger: #b3261e; --danger-bg: #fdecea; --warn: #7a5200; --warn-bg: #fff4d6;
-  --ok: #1b6b34; --focus: #0b5cad; --stripe: #f3f5f8; --hover: #e6edf7; --pass-bg: #d1e7dd; --pass-text: #0f5132;
-  --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px; --s6: 48px;
-  --fs-sm: 14px; --fs-md: 16px; --fs-lg: 24px;
+  /* Color roles */
+  --bg: #fbfaf7; --surface: #ffffff; --text: #1b1a17; --text-muted: #5b574f;
+  --border: #dcd8cf; --primary: #0f4c81; --on-primary: #ffffff; --primary-hover: #0a3860;
+  --danger: #a3201a; --danger-bg: #fbece9; --warn: #7a4b00; --warn-bg: #fbf1d9;
+  --ok: #1d6b3a; --ok-bg: #e5f2ea; --focus: #0f4c81;
+  --border-strong: #8a867d; --stripe: #f3f1ea; --hover: #f1eee6; --pass-bg: #e5f2ea; --pass-text: #1d6b3a;
+  /* Spacing scale */
+  --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px; --s6: 48px; --s8: 64px; --s12: 96px;
+  /* Type scale */
+  --fs-xs: 13px; --fs-sm: 16px; --fs-md: 18px; --fs-lg: 28px; --fs-display: clamp(30px, 5vw, 44px);
+  --serif: Charter, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --measure: 68ch; --page: 1200px; --gutter: 24px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #12161b; --surface: #1b2027; --text: #e8ecf1; --text-muted: #aab4c0;
-    --border: #343c47; --primary: #7db4f0; --on-primary: #0b1a2b; --primary-hover: #9cc5f5;
-    --danger: #ff9b94; --danger-bg: #3a1f1e; --warn: #f0c36d; --warn-bg: #35290f;
-    --ok: #7fd49a; --focus: #9cc5f5; --stripe: #1f252d; --hover: #2a3340; --pass-bg: #1d3b2a; --pass-text: #9fe0b4;
+    --bg: #151513; --surface: #1d1c1a; --text: #ece9e2; --text-muted: #aaa59b;
+    --border: #34322d; --primary: #8fbbe8; --on-primary: #0d1b2a; --primary-hover: #b0d0f1;
+    --danger: #ff9e94; --danger-bg: #3a201e; --warn: #f0c36d; --warn-bg: #33290f;
+    --ok: #86d4a0; --ok-bg: #1b3326; --focus: #8fbbe8;
+    --border-strong: #7a766d; --stripe: #1b1a18; --hover: #242320; --pass-bg: #1b3326; --pass-text: #86d4a0;
   }
 }
+
+/* Base */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 400 var(--fs-md)/1.5 var(--font); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 var(--fs-sm)/1.5 var(--font); }
 h1, h2, h3, p { margin: 0; }
-h1 { font-size: var(--fs-lg); font-weight: 700; }
-h2 { font-size: var(--fs-md); font-weight: 700; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 700; line-height: 1.2; }
+h2 { font-size: var(--fs-lg); }
+h3 { font-size: var(--fs-md); }
 a { color: var(--primary); }
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
-
-.app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: var(--s2) var(--s3); display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: baseline; justify-content: space-between; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .muted { color: var(--text-muted); }
 .small { font-size: var(--fs-sm); }
-main { max-width: 1600px; margin: 0 auto; padding: var(--s3); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Page frame */
+.app-header, footer { width: min(calc(var(--page) - 2 * var(--gutter)), calc(100% - 2 * var(--gutter))); margin: 0 auto; }
+.app-header { padding: var(--s3) 0 var(--s2); border-bottom: 1px solid var(--border); }
+.app-header h1 { font-size: var(--fs-lg); letter-spacing: -.01em; }
+.app-header .deck { margin-top: var(--s1); font-size: var(--fs-sm); color: var(--text-muted); }
+main { width: min(calc(var(--page) - 2 * var(--gutter)), calc(100% - 2 * var(--gutter))); margin: 0 auto; padding: var(--s3) 0 var(--s8); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
 main > section, #dashboard, #table-section { min-width: 0; max-width: 100%; }
-footer { padding: var(--s3); text-align: center; color: var(--text-muted); font-size: var(--fs-sm); border-top: 1px solid var(--border); }
+#results-section > * + * { margin-top: var(--s2); }
+footer { padding: var(--s3) 0; border-top: 1px solid var(--border); color: var(--text-muted); font-size: var(--fs-xs); }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 0; padding: var(--s3); }
-.card > h2 { margin-bottom: var(--s2); }
+/* Cards are flat: structure comes from rules and white space */
+.card { background: none; border: 0; padding: 0; }
 
-/* Buttons */
-.btn { font: 600 var(--fs-sm)/1 var(--font); padding: var(--s1) var(--s2); border-radius: 0; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 40px; }
-.btn:hover { border-color: var(--primary); }
-.btn:active { background: var(--bg); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
+/* Buttons and links */
+.btn { font: 600 var(--fs-sm)/1.25 var(--font); padding: var(--s1) var(--s2); border-radius: 2px; border: 1px solid var(--text); background: transparent; color: var(--text); cursor: pointer; min-height: 44px; }
+.btn:hover { background: var(--hover); }
+.btn:active { background: var(--border); }
+.btn:disabled { color: var(--text-muted); border-color: var(--border); background: transparent; cursor: not-allowed; }
 .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
-.link-btn { font: inherit; color: var(--primary); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline; }
-.link-btn:hover { text-decoration-thickness: 2px; }
+.btn-primary:active { background: var(--primary-hover); }
+.btn-primary:disabled { background: var(--border); border-color: var(--border); color: var(--text-muted); }
+.btn-quiet { border-color: transparent; color: var(--text-muted); }
+.btn-quiet:hover { color: var(--text); }
+.link-btn { font: inherit; color: var(--primary); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.link-btn:hover { color: var(--primary-hover); text-decoration-thickness: 2px; }
 .link-btn[aria-pressed="true"] { font-weight: 700; color: var(--text); }
 
+/* Form controls */
+select, input[type=search] { font: 400 var(--fs-sm)/1.5 var(--font); padding: var(--s1) var(--s2); border: 1px solid var(--text-muted); border-radius: 2px; background: var(--surface); color: var(--text); min-height: 44px; max-width: 100%; }
+select { cursor: pointer; text-transform: none; letter-spacing: normal; }
+select:hover, input[type=search]:hover { border-color: var(--text); }
+select:disabled, input:disabled { color: var(--text-muted); border-color: var(--border); cursor: not-allowed; }
+
 /* Upload */
-.drop-zone { display: block; border: 2px dashed var(--border); border-radius: 0; background: var(--surface); padding: var(--s6) var(--s3); text-align: center; cursor: pointer; }
-.drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: var(--bg); }
-.drop-zone:focus-within { outline: 3px solid var(--focus); outline-offset: 3px; }
+.lead { font: 400 var(--fs-sm)/1.5 var(--font); max-width: var(--measure); color: var(--text-muted); margin-top: var(--s2); }
+.drop-zone { display: block; border: 1px dashed var(--border-strong); border-radius: 4px; background: transparent; padding: var(--s6) var(--s3); text-align: center; cursor: pointer; }
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: var(--hover); }
+.drop-zone:hover .title, .drop-zone.dragover .title { color: var(--primary); }
+.drop-zone:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
 .drop-zone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.drop-zone .title { font-size: var(--fs-lg); font-weight: 700; display: block; margin-bottom: var(--s1); }
-.notice { padding: var(--s2); border-radius: 0; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
-.notice.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+.drop-zone .title { display: block; font: 700 var(--fs-lg)/1.2 var(--serif); margin-bottom: var(--s1); }
+.drop-zone .title::after { content: ""; }
+.drop-zone.disabled { opacity: .5; cursor: not-allowed; }
+.drop-note { display: block; margin-top: var(--s1); font-size: var(--fs-xs); }
+
+/* Notices read as margin notes, with a rule instead of a filled box */
+.notice { padding: 0 0 0 var(--s2); border: 0; border-left: 3px solid var(--warn); background: none; color: var(--text); max-width: var(--measure); }
+.notice.danger { border-left-color: var(--danger); }
+.notice strong { font-weight: 700; }
 .notice ul { margin: var(--s1) 0 0; padding-left: var(--s3); }
-
-/* Processing */
-progress { width: 100%; height: 8px; margin: var(--s2) 0; accent-color: var(--primary); }
-#processing-log { list-style: none; margin: 0; padding: 0; font-size: var(--fs-sm); display: grid; gap: var(--s1); }
-
-/* Toolbar */
-.toolbar { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: space-between; }
-.toolbar .actions { display: flex; flex-wrap: wrap; gap: var(--s1); }
-
-/* Dashboard */
-.scope-bar { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; padding: var(--s2) var(--s3); }
-.scope-bar label { font-size: var(--fs-sm); font-weight: 600; }
-.scope-bar select { font: inherit; padding: var(--s1) var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; cursor: pointer; max-width: 100%; }
-.counts { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); padding: var(--s2) var(--s3); }
-.stat { position: relative; min-width: 0; }
-.stat .label { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
-.stat .num { display: block; font-size: var(--fs-lg); font-weight: 700; line-height: 1.2; }
-details.stat > summary { cursor: pointer; list-style: none; }
-details.stat > summary::-webkit-details-marker { display: none; }
-details.stat > summary .label::after { content: " \25BE"; }
-details.stat > summary:hover .num { text-decoration: underline; }
-.stat-list { position: absolute; z-index: 10; top: 100%; left: 0; margin-top: var(--s1); min-width: 280px; max-width: min(520px, calc(100vw - 48px)); background: var(--surface); border: 1px solid var(--border); padding: var(--s2); }
-.stat-list ul { list-style: none; margin: var(--s1) 0 0; padding: 0; max-height: 240px; overflow: auto; display: grid; gap: var(--s1); font-size: var(--fs-sm); }
-.stat-list ul li { display: flex; justify-content: space-between; gap: var(--s2); }
-.stat-list .count { color: var(--text-muted); white-space: nowrap; }
-.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
-.tabs [role=tab] { font: 600 var(--fs-md)/1.5 var(--font); padding: var(--s1) var(--s3); background: none; color: var(--text-muted); border: 0; border-bottom: 3px solid transparent; cursor: pointer; min-height: 40px; }
-.tabs [role=tab]:hover { background: var(--hover); color: var(--text); }
-.tabs [role=tab][aria-selected="true"] { color: var(--text); border-bottom-color: var(--primary); }
-details.notices > summary { cursor: pointer; padding: var(--s2); background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); font-weight: 600; }
-details.notices.serious > summary { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
-.notices-body { display: grid; gap: var(--s2); margin-top: var(--s2); }
-details.method > summary { cursor: pointer; font-weight: 600; font-size: var(--fs-sm); }
+#notices { display: grid; gap: var(--s2); }
+details.notices > summary { cursor: pointer; padding: 0 0 0 var(--s2); border-left: 3px solid var(--warn); font-weight: 600; max-width: var(--measure); }
+details.notices.serious > summary { border-left-color: var(--danger); }
+details.notices > summary:hover { color: var(--primary); }
+.notices-body { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .st { display: inline-block; min-width: 88px; font-weight: 700; }
 .st-conflict, .st-error { color: var(--danger); }
 .st-duplicate, .st-check, .st-empty { color: var(--warn); }
-.drop-zone.disabled { opacity: .5; cursor: not-allowed; }
-.drop-note { display: block; margin-top: var(--s1); }
-#results-table th:first-child, #results-table td:first-child { position: sticky; left: 0; box-shadow: inset -1px 0 var(--border); }
-#results-table td:first-child { background: var(--surface); z-index: 1; }
-#results-table thead th:first-child { z-index: 3; }
-#results-table tbody tr:hover td:first-child { background: var(--hover); }
-.wage { display: grid; gap: var(--s2); }
-.wage.below { border-left: 8px solid var(--danger); }
-.wage.clear { border-left: 8px solid var(--ok); }
-.wage-head { display: flex; flex-wrap: wrap; gap: var(--s2); justify-content: space-between; align-items: flex-start; }
-.wage-head .headline { font-size: var(--fs-lg); font-weight: 700; max-width: 900px; }
+
+/* Processing */
+#processing-section h2 { margin-bottom: var(--s2); }
+progress { display: block; width: 100%; max-width: var(--measure); height: 4px; margin: var(--s2) 0 var(--s3); accent-color: var(--primary); }
+#processing-log { list-style: none; margin: 0; padding: 0; font-size: var(--fs-sm); display: grid; gap: var(--s1); max-width: var(--measure); }
+
+/* Results header: one summary line on the left, Export and Start over on the right */
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: center; justify-content: space-between; }
+.toolbar h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.toolbar .actions { display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center; }
+.menu { position: relative; }
+.menu > summary { list-style: none; display: inline-flex; align-items: center; gap: var(--s1); }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary::after { content: "\25BE"; font-size: var(--fs-xs); }
+.menu[open] > summary::after { content: "\25B4"; }
+.menu-list { position: absolute; z-index: 20; top: 100%; right: 0; margin-top: 4px; min-width: 340px; max-width: calc(100vw - 32px); display: grid; gap: 2px; padding: var(--s1); background: var(--surface); border: 1px solid var(--text); }
+.menu-item { display: grid; width: 100%; min-height: 44px; padding: var(--s1) var(--s2); text-align: left; font: inherit; color: var(--text); background: none; border: 0; border-radius: 2px; cursor: pointer; }
+.menu-item:hover { background: var(--hover); }
+.menu-item:disabled { color: var(--text-muted); cursor: not-allowed; background: none; }
+.menu-item .mi-label { font-weight: 600; }
+.menu-item .mi-note { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* Status line: bookkeeping stays small and quiet; details open in a popover */
+.status { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s2); font-size: var(--fs-xs); color: var(--text-muted); }
+#notices:empty { display: none; }
+details.notices > summary { cursor: pointer; font-weight: 600; list-style: none; }
+details.notices > summary::-webkit-details-marker { display: none; }
+details.notices > summary::after { content: " \25BE"; }
+details.notices[open] > summary::after { content: " \25B4"; }
+details.notices > summary:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+details.notices.serious > summary { color: var(--danger); }
+.notices-body { position: absolute; z-index: 15; top: 100%; left: 0; margin-top: var(--s1); width: min(560px, calc(100vw - 32px)); max-height: 60vh; overflow: auto; display: grid; gap: var(--s2); padding: var(--s2); background: var(--surface); border: 1px solid var(--text); font-size: var(--fs-sm); color: var(--text); }
+
+/* Statistics band */
+#dashboard { margin-top: var(--s3); }
+.counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); gap: var(--s3); align-items: start; padding: var(--s3) 0; border-bottom: 1px solid var(--border); }
+.stat { position: relative; min-width: 0; }
+.stat .label { display: block; font: 600 var(--fs-xs)/1.5 var(--font); color: var(--text-muted); }
+.stat .num { display: block; font: 700 var(--fs-lg)/1.2 var(--serif); font-variant-numeric: tabular-nums lining-nums; }
+.stat .num.range { font-size: var(--fs-md); line-height: 1.5; padding-top: 4px; }
+.stat > div.small, .stat .sub { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--text-muted); }
+details.stat > summary { display: block; cursor: pointer; list-style: none; }
+details.stat > summary::-webkit-details-marker { display: none; }
+details.stat > summary .label::after { content: " \25BE"; }
+details.stat[open] > summary .label::after { content: " \25B4"; }
+details.stat > summary:hover .num { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.stat-list { position: absolute; z-index: 10; top: 100%; left: 0; margin-top: var(--s1); min-width: 288px; max-width: min(520px, calc(100vw - 48px)); background: var(--surface); border: 1px solid var(--text); padding: var(--s2); }
+.stat-list ul { list-style: none; margin: var(--s1) 0 0; padding: 0; max-height: 264px; overflow: auto; display: grid; gap: var(--s1); font-size: var(--fs-sm); }
+.stat-list ul li { display: flex; justify-content: space-between; gap: var(--s2); }
+.stat-list .count { color: var(--text-muted); white-space: nowrap; }
+
+/* Tabs */
+.tabbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s1) var(--s3); border-bottom: 1px solid var(--border); }
+.tabs { display: flex; flex-wrap: wrap; gap: 0 var(--s4); }
+.scope { display: flex; align-items: center; gap: var(--s1); }
+.scope label { font: 600 var(--fs-xs)/1.5 var(--font); color: var(--text-muted); }
+.scope select { min-height: 40px; width: auto; max-width: 260px; }
+.scope:has(option[value="all"]:not(:checked)) select { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.tabs [role=tab] { font: 600 var(--fs-md)/1.5 var(--font); padding: var(--s1) 0; min-height: 48px; background: none; color: var(--text-muted); border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.tabs [role=tab]:hover { color: var(--text); border-bottom-color: var(--border-strong); }
+.tabs [role=tab][aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
+
+/* Prevailing wage */
+.wage { display: grid; gap: var(--s6); padding-top: var(--s4); }
+.wage-head h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wage-head .headline { font: 700 var(--fs-display)/1.15 var(--serif); letter-spacing: -.01em; max-width: 24em; text-wrap: balance; }
+.wage-head > .btn { margin-top: var(--s3); }
 .wage .neg { color: var(--danger); }
-.facts { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-.fact .label { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; }
-.fact .value { font-size: var(--fs-lg); font-weight: 700; }
-.mini-wrap { overflow: auto; max-height: 280px; border: 1px solid var(--border); border-radius: 0; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3) var(--s4); padding-top: var(--s3); border-top: 2px solid var(--text); }
+.fact .label { font: 600 var(--fs-xs)/1.5 var(--font); color: var(--text-muted); margin-bottom: 4px; }
+.fact .value { font: 700 var(--fs-lg)/1.15 var(--serif); font-variant-numeric: tabular-nums lining-nums; }
+.fact .note { margin-top: 4px; font-size: var(--fs-xs); color: var(--text-muted); }
+.fact.minor { padding-top: var(--s3); border-top: 1px solid var(--border); }
+.fact.minor .value { font-size: var(--fs-md); }
+.block-title { font: 700 var(--fs-md)/1.2 var(--serif); margin-bottom: var(--s2); }
+.mini-wrap { overflow: auto; max-height: 360px; border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); }
+.wage-notes { display: grid; gap: var(--s1); max-width: var(--measure); padding-top: var(--s3); border-top: 1px solid var(--border); }
+.wage > details > p { max-width: var(--measure); }
+details.method > summary { cursor: pointer; font-weight: 600; color: var(--primary); }
+details.method > summary:hover { color: var(--primary-hover); }
+details.method[open] > summary { margin-bottom: var(--s1); }
+details.method > p + p { margin-top: var(--s1); }
 
 /* Tables */
 table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-th, td { padding: var(--s1) var(--s2); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
-thead th { position: sticky; top: 0; background: var(--stripe); z-index: 2; border-bottom: 2px solid var(--border); font-weight: 700; padding: 0; }
-thead th .th-btn, thead th .th-plain { display: block; width: 100%; padding: var(--s1) var(--s2); font: inherit; font-weight: 700; color: var(--text); background: none; border: 0; text-align: left; cursor: pointer; }
+th, td { padding: 4px var(--s2); line-height: 1.6; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+thead th { position: sticky; top: 0; background: var(--bg); z-index: 2; border-bottom: 1px solid var(--text); font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); padding: 0; }
+.mini-wrap thead th { padding: var(--s1) var(--s2); }
+thead th .th-btn, thead th .th-plain { display: block; width: 100%; padding: var(--s1) var(--s2); font: inherit; font-weight: 700; color: var(--text-muted); background: none; border: 0; text-align: left; cursor: pointer; }
+.mini-wrap thead th .th-plain { padding: 0; }
 thead th .th-plain { cursor: default; }
-thead th .th-btn:hover { background: var(--bg); }
+thead th .th-btn:hover { color: var(--text); background: var(--hover); }
+thead th[aria-sort="ascending"] .th-btn, thead th[aria-sort="descending"] .th-btn { color: var(--text); }
 th.num, td.num { text-align: right; }
-th.num .th-btn { text-align: right; }
+th.num .th-btn, th.num .th-plain { text-align: right; }
 td.text { max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
-td.empty { color: var(--text-muted); }
-td.neg { color: var(--danger); font-weight: 600; }
+td.empty, td.context { color: var(--text-muted); }
+td.neg { color: var(--danger); font-weight: 700; }
 th.secondary, td.secondary { color: var(--text-muted); }
-th.sec-start, td.sec-start { border-left: 2px solid var(--border); }
+th.sec-start, td.sec-start { border-left: 1px solid var(--text-muted); }
 tbody tr:hover td { background: var(--hover); }
-.badge { display: inline-block; padding: 0 var(--s1); border-radius: 0; font-weight: 700; border: 0; font-size: var(--fs-sm); letter-spacing: .04em; line-height: 1.5; }
-.badge.below { color: var(--on-primary); background: var(--danger); }
-.badge.meets { color: var(--on-primary); background: var(--ok); }
-.badge.norate { color: var(--on-primary); background: var(--warn); }
-.badge.p { color: var(--text); background: var(--border); }
-.badge.np { color: var(--on-primary); background: var(--warn); }
+#results-table th:first-child, #results-table td:first-child { position: sticky; left: 0; box-shadow: inset -1px 0 var(--border); }
+#results-table td:first-child { background: var(--bg); z-index: 1; font-weight: 500; }
+#results-table thead th:first-child { z-index: 3; }
+#results-table tbody tr:hover td:first-child { background: var(--hover); }
+#results-table tbody tr.below td:first-child { box-shadow: inset 4px 0 var(--danger), inset -1px 0 var(--border); }
 
+.badge { display: inline-block; padding: 0 var(--s1); border-radius: 2px; border: 1px solid currentColor; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; line-height: 20px; }
+.badge.below { color: var(--danger); background: var(--danger-bg); }
+.badge.meets { color: var(--ok); background: var(--ok-bg); }
+.badge.norate, .badge.np { color: var(--warn); background: var(--warn-bg); }
+.badge.p { color: var(--text-muted); background: transparent; }
+
+/* Table tools */
 .table-tools { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s2); }
-.table-tools input[type=search] { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-width: 260px; min-height: 40px; }
-.table-tools .filter-field { display: inline-flex; gap: var(--s1); align-items: center; font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
-.table-tools select { font: inherit; padding: 8px var(--s2); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; cursor: pointer; }
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 0; overflow: hidden; }
-.seg button { font: 600 var(--fs-sm)/1 var(--font); padding: var(--s1) var(--s2); background: var(--surface); color: var(--text); border: 0; border-right: 1px solid var(--border); cursor: pointer; }
+.table-tools input[type=search] { flex: 1 1 280px; max-width: 400px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--text); border-radius: 2px; overflow: hidden; }
+.seg button { font: 600 var(--fs-sm)/1.25 var(--font); padding: var(--s1) var(--s2); min-height: 42px; background: transparent; color: var(--text); border: 0; border-right: 1px solid var(--border); cursor: pointer; }
 .seg button:last-child { border-right: 0; }
-.seg button:hover { background: var(--bg); }
+.seg button:hover { background: var(--hover); }
 .seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
-.pills { display: flex; flex-wrap: wrap; gap: var(--s1); }
-.pill { display: inline-flex; gap: var(--s1); align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 0; padding: var(--s1) var(--s2); font-size: var(--fs-sm); }
-.pill button { font: inherit; background: none; border: 0; color: var(--text); cursor: pointer; padding: 0 var(--s1); }
-.table-scroll { max-width: 100%; overflow: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 0; }
+.pills { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: var(--s1); }
+.pills:empty { display: none; }
+.pill { display: inline-flex; gap: var(--s1); align-items: center; background: var(--surface); border: 1px solid var(--text-muted); border-radius: 2px; padding: 0 var(--s1) 0 var(--s2); font-size: var(--fs-sm); min-height: 36px; }
+.pill button { font: inherit; background: none; border: 0; color: var(--text); cursor: pointer; padding: 0 var(--s1); min-height: 32px; }
+.pill button:hover { color: var(--danger); }
+.table-scroll { max-width: 100%; overflow: auto; max-height: 78vh; border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); }
+.table-scroll thead th { top: 0; }
 .table-foot { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; justify-content: space-between; margin-top: var(--s2); }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* Complaint text */
-.cx-options { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: end; margin-bottom: var(--s2); }
-.cx-options label.field { display: grid; gap: var(--s1); font-size: var(--fs-sm); font-weight: 600; }
-.cx-options select { font: inherit; padding: 8px var(--s1); border: 1px solid var(--border); border-radius: 0; background: var(--bg); color: var(--text); min-height: 40px; max-width: 100%; }
-.cx-checks { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin-bottom: var(--s2); font-size: var(--fs-sm); }
-.cx-checks label { display: inline-flex; gap: var(--s1); align-items: center; cursor: pointer; }
-.cx-checks input { width: 16px; height: 16px; accent-color: var(--primary); }
-.cx-actions { display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center; margin: var(--s2) 0; }
-.cx-letter { margin-top: var(--s3); }
-.cx-letter-head { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; justify-content: space-between; max-width: 100ch; margin-bottom: var(--s1); }
-.cx-letter-head h3 { font-size: var(--fs-md); font-weight: 700; }
-.cx-notes { margin: 0 0 var(--s2); padding-left: var(--s3); }
-.complaint-text { display: block; width: 100%; max-width: 100ch; min-height: 320px; padding: var(--s2); font: 400 var(--fs-md)/1.6 var(--font); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 0; resize: vertical; white-space: pre-wrap; }
+#table-section, #complaint-section { padding-top: var(--s3); }
+/* Section introductions */
+#table-section > h2, #complaint-section > h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#complaint-section > p.muted { font: 400 var(--fs-md)/1.6 var(--serif); max-width: var(--measure); margin-bottom: var(--s3) !important; }
+
+/* Complaint letters */
+.cx-options { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(256px, 1fr)); align-items: end; margin-bottom: var(--s3); }
+.cx-options label.field { display: grid; gap: var(--s1); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.cx-checks { display: grid; gap: var(--s1); margin-bottom: var(--s3); font-size: var(--fs-sm); }
+.cx-checks label { display: flex; gap: var(--s1); align-items: flex-start; cursor: pointer; }
+.cx-checks input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--primary); }
+.cx-notes { margin: 0 0 var(--s2); padding-left: var(--s3); max-width: var(--measure); }
+#cx-warn { margin-top: var(--s2); }
+#complaint-section > p.small:not(.muted), #complaint-section > .notice { font-size: var(--fs-sm); }
+.cx-actions { display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center; margin: var(--s1) 0 0; min-height: 24px; }
+.cx-letter { margin-top: var(--s6); padding-top: var(--s3); border-top: 1px solid var(--text); }
+.cx-letter-head { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; justify-content: space-between; max-width: 72ch; margin-bottom: var(--s2); }
+.cx-letter-head h3 { font-size: var(--fs-md); }
+.cx-letter-head h3 .muted { font: 400 var(--fs-sm) var(--font); }
+.complaint-text { display: block; width: 100%; max-width: 72ch; min-height: 320px; padding: var(--s3); font: 400 var(--fs-md)/1.6 var(--serif); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 2px; resize: vertical; white-space: pre-wrap; }
+.complaint-text:hover { border-color: var(--text-muted); }
+
+/* Small screens */
+@media (max-width: 900px) {
+  .counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat:has(.range) { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  :root { --gutter: 16px; }
+  .app-header { padding: var(--s4) 0 var(--s2); }
+  main { padding: var(--s3) 0 var(--s6); }
+  footer { padding: var(--s2) 0; }
+  .drop-zone { padding: var(--s6) 0; }
+  .toolbar .actions { width: 100%; }
+  .menu-list { left: 0; right: auto; min-width: 0; width: calc(100vw - 32px); }
+  .scope { width: 100%; padding-bottom: var(--s1); }
+  .scope select { flex: 1 1 auto; max-width: none; }
+  details.stat[open] { grid-column: 1 / -1; }
+  details.stat[open] .stat-list { position: static; min-width: 0; max-width: none; }
+  .facts { grid-template-columns: minmax(0, 1fr); }
+  .tabs { gap: 0 var(--s3); }
+  .tabs [role=tab] { font-size: var(--fs-sm); }
+  .complaint-text { padding: var(--s2); }
+}
 </style>
 </head>
 <body>
 <header class="app-header">
   <h1>IDOL Certified Payroll Extractor</h1>
-  <p class="muted small">Reads Illinois Department of Labor (IDOL) Certified Transcript of Payroll (CTP) PDFs</p>
+  <p class="deck">Reads Illinois Department of Labor (IDOL) Certified Transcript of Payroll (CTP) PDFs</p>
 </header>
 
 <main id="main">
@@ -180,10 +326,10 @@ tbody tr:hover td { background: var(--hover); }
   <section id="upload-section" aria-label="Upload">
     <label class="drop-zone" id="drop-zone">
       <span class="title">Drop PDF files here, or click to choose files</span>
-      <span class="muted">Select one or more IDOL Certified Transcript of Payroll PDFs.</span>
       <span class="muted small drop-note">Files are read in your browser and are not uploaded.</span>
       <input type="file" id="file-input" multiple accept=".pdf,application/pdf">
     </label>
+    <p class="lead">Compares each employee&rsquo;s pay with the Cook County Laborer prevailing wage and drafts a complaint letter for each contractor that paid less.</p>
     <p id="upload-msg" class="notice danger" role="alert" hidden style="margin-top: var(--s2);"></p>
   </section>
 
@@ -195,34 +341,34 @@ tbody tr:hover td { background: var(--hover); }
 
   <section id="results-section" hidden>
     <div class="toolbar">
-      <div>
-        <h2 style="font-size: var(--fs-lg);">Results</h2>
-        <p id="results-summary" class="muted small"></p>
-      </div>
+      <div class="status"><h2>Results</h2><p id="results-summary"></p><div id="notices"></div></div>
       <div class="actions">
-        <button type="button" class="btn btn-primary" id="download-csv">Download CSV</button>
-        <button type="button" class="btn" id="download-csv-filtered">Download CSV, filtered rows</button>
-        <button type="button" class="btn" id="download-json">Download JSON</button>
-        <button type="button" class="btn" id="reset-btn">Start over</button>
+        <details class="menu" id="export-menu">
+          <summary class="btn">Export</summary>
+          <div class="menu-list">
+            <button type="button" class="menu-item" id="download-csv"><span class="mi-label">Download CSV</span><span class="mi-note">Every row in the classification scope</span></button>
+            <button type="button" class="menu-item" id="download-csv-filtered"><span class="mi-label">Download CSV, filtered rows</span><span class="mi-note">Only the rows that match the table filters and sort</span></button>
+            <button type="button" class="menu-item" id="download-json"><span class="mi-label">Download JSON</span><span class="mi-note">All rows, whatever the classification scope</span></button>
+          </div>
+        </details>
+        <button type="button" class="btn btn-quiet" id="reset-btn">Start over</button>
       </div>
     </div>
     <p id="download-status" class="sr-only" role="status"></p>
 
-    <div id="notices" style="margin-top: var(--s2);"></div>
-
-    <div id="dashboard" style="display: grid; gap: var(--s2); margin-top: var(--s2);">
-      <section class="card scope-bar" aria-label="Scope">
-        <label for="classification-filter">Classification</label>
-        <select id="classification-filter"><option value="all">All classifications</option></select>
-        <p class="muted small">Applies to the counts, wage panel, table, and CSV downloads. JSON and complaint letters always use all rows.</p>
-      </section>
-      <section class="card counts" id="counts" aria-label="Counts"></section>
-
+    <div id="dashboard">
+            <div class="tabbar">
       <div class="tabs" role="tablist" aria-label="Views" id="tablist">
         <button type="button" role="tab" id="tab-wage" aria-controls="panel-wage" aria-selected="true">Prevailing wage</button>
         <button type="button" role="tab" id="tab-table" aria-controls="table-section" aria-selected="false" tabindex="-1">Payroll data</button>
         <button type="button" role="tab" id="tab-complaint" aria-controls="complaint-section" aria-selected="false" tabindex="-1">Complaint letters</button>
       </div>
+      <div class="scope">
+        <label for="classification-filter">Classification</label>
+        <select id="classification-filter" title="Applies to the figures, the wage panel, the table, and the CSV exports. JSON and complaint letters always use all rows."><option value="all">All classifications</option></select>
+      </div>
+      </div>
+      <section class="card counts" id="counts" aria-label="Counts"></section>
 
       <div id="panel-wage" role="tabpanel" aria-labelledby="tab-wage">
         <section class="card wage" id="wage-panel" aria-label="Prevailing wage"></section>
@@ -230,7 +376,7 @@ tbody tr:hover td { background: var(--hover); }
 
       <section class="card" id="table-section" role="tabpanel" aria-labelledby="tab-table" hidden>
         <h2>Payroll data</h2>
-        <p class="muted small" style="margin-bottom: var(--s2);">One row per employee per payroll report. Key columns come first, and supporting details follow after the divider. The Employee column stays in place when you scroll sideways. The two CSV buttons at the top of the page export either the whole classification scope or only the rows that match the filters below.</p>
+        <p class="muted small" style="margin-bottom: var(--s2);">One row per employee per payroll report. Scroll sideways for pay components and project details.</p>
         <div class="table-tools">
           <label class="sr-only" for="search">Search the table</label>
           <input type="search" id="search" placeholder="Search employee, contractor, project, body">
@@ -272,7 +418,6 @@ tbody tr:hover td { background: var(--hover); }
 </main>
 
 <footer>LDC LMCC Research Department &middot; Version <span id="app-version"></span></footer>
-
 <script>
 /**
  * IDOL Certified Payroll PDF Parser (JavaScript port)
@@ -288,8 +433,7 @@ tbody tr:hover td { background: var(--hover); }
 
 // PDF.js worker setup (loaded from CDN in index.html)
 if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
 }
 
 // ---------------------------------------------------------------------------
@@ -946,21 +1090,70 @@ function runValidationChecks(row, grossTolerance = 1.0) {
 }
 
 // ---------------------------------------------------------------------------
+// Form layout detection
+// ---------------------------------------------------------------------------
+// The parser depends on the IDOL CTP form having a specific layout (header
+// labels at known x-coordinates, section headers at expected positions).
+// This function checks a handful of key anchors and returns a warning string
+// if the PDF does not appear to match the expected template. Processing
+// still proceeds either way — the warning is informational so the analyst
+// can judge whether the extracted data is trustworthy.
+
+function checkFormLayout(page1Words, allPagesWords) {
+    const expectedLabels = ['Payroll', 'Contractor', 'Company', 'Project',
+                            'Agency', 'Public', 'Contact', 'Primary'];
+    const foundLabels = new Set();
+    for (const w of page1Words) {
+        const text = w.text.trim();
+        for (const lbl of expectedLabels) {
+            if ((text === lbl || text.startsWith(lbl + ' '))
+                && Math.abs(w.x0 - 17.928) <= 5) {
+                foundLabels.add(lbl);
+            }
+        }
+    }
+
+    let hasEmployeeDetails = false, hasWorkClassification = false;
+    for (const words of allPagesWords) {
+        for (const w of words) {
+            if (w.text.includes('Employee Details')) hasEmployeeDetails = true;
+            if (w.text.includes('Work Classification')) hasWorkClassification = true;
+        }
+    }
+
+    const problems = [];
+    if (foundLabels.size < 5) {
+        problems.push('only ' + foundLabels.size + ' of 8 expected header labels found on page 1');
+    }
+    if (!hasEmployeeDetails) problems.push('"Employee Details" section header not found');
+    if (!hasWorkClassification) problems.push('"Work Classification" section header not found');
+
+    return problems.length
+        ? 'Form layout may not match the expected IDOL CTP template: '
+          + problems.join('; ') + '. Extracted data may be incomplete or incorrect.'
+        : null;
+}
+
+// ---------------------------------------------------------------------------
 // Main PDF processing
 // ---------------------------------------------------------------------------
 
+/**
+ * Process a single PDF file.
+ * Returns { rows: [...], formWarning: string|null }.
+ *
+ * For each employee, the Work Classification section has a P row, an NP
+ * row, and a Pension row. We use the P row for wages when it carries any
+ * non-zero hours or gross; otherwise we fall back to the NP row (when the
+ * contractor put everything on NP by mistake) and flag it as np_sourced.
+ * Benefits always come from the Pension row, regardless of which wage row
+ * was selected.
+ *
+ * formWarning is non-null when the PDF does not appear to match the expected
+ * IDOL CTP form layout. The rows are still returned — the warning is
+ * informational so the analyst can decide whether to trust the data.
+ */
 async function processPdf(file) {
-    /**
-     * Process a single PDF file.
-     * Returns array of employee row dicts (one per employee triplet).
-     *
-     * For each employee, the Work Classification section has a P row, an NP
-     * row, and a Pension row. We use the P row for wages when it carries any
-     * non-zero hours or gross; otherwise we fall back to the NP row (when the
-     * contractor put everything on NP by mistake) and flag it as np_sourced.
-     * Benefits always come from the Pension row, regardless of which wage row
-     * was selected.
-     */
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
@@ -970,6 +1163,10 @@ async function processPdf(file) {
         const words = await extractWordsFromPage(pdf, i);
         allPagesWords.push(words);
     }
+
+    // Check whether the PDF matches the expected IDOL CTP form layout.
+    // The warning is informational — rows are still extracted either way.
+    const formWarning = checkFormLayout(allPagesWords[0], allPagesWords.slice(1));
 
     // Extract header (page 1 = index 0)
     const header = extractHeaderFields(allPagesWords[0]);
@@ -1062,7 +1259,10 @@ async function processPdf(file) {
         rows.push(row);
     }
 
-    return rows;
+    // Return both the rows and the form-layout warning. The warning is
+    // surfaced in the processing log and the notices panel so the analyst
+    // knows when a PDF may not match the expected IDOL CTP template.
+    return { rows: rows, formWarning: formWarning };
 }
 
 async function processMultiplePdfs(files, onProgress = null) {
@@ -1076,9 +1276,9 @@ async function processMultiplePdfs(files, onProgress = null) {
 
     for (const file of files) {
         try {
-            const rows = await processPdf(file);
-            allRows.push(...rows);
-            if (onProgress) onProgress(file.name, rows.length, null);
+            const result = await processPdf(file);
+            allRows.push(...result.rows);
+            if (onProgress) onProgress(file.name, result.rows.length, null);
         } catch (e) {
             errors.push({ filename: file.name, error: e.message });
             if (onProgress) onProgress(file.name, 0, e.message);
@@ -1135,39 +1335,12 @@ if (typeof window !== 'undefined') {
 (function () {
     'use strict';
 
-    // ----- Cook County Laborer prevailing wage rates (hardcoded from CSV) -----
-    // Each entry: { posted: 'YYYY-MM-DD', totalPackage: <number> }
-    // A rate applies to any payroll period whose START date is on or after
-    // the posted date, up until the next posting.
-    var PREVAILING_WAGES = [
-        { posted: '2024-01-25', totalPackage: 83.09 },
-        { posted: '2024-03-04', totalPackage: 83.09 },
-        { posted: '2024-03-19', totalPackage: 83.09 },
-        { posted: '2024-04-15', totalPackage: 83.09 },
-        { posted: '2024-05-20', totalPackage: 83.09 },
-        { posted: '2024-07-15', totalPackage: 85.69 },
-        { posted: '2024-08-15', totalPackage: 85.69 },
-        { posted: '2024-09-16', totalPackage: 85.69 },
-        { posted: '2024-11-07', totalPackage: 85.69 },
-        { posted: '2024-12-16', totalPackage: 85.69 },
-        { posted: '2025-01-15', totalPackage: 85.69 },
-        { posted: '2025-03-03', totalPackage: 85.69 },
-        { posted: '2025-04-15', totalPackage: 85.69 },
-        { posted: '2025-05-19', totalPackage: 85.69 },
-        { posted: '2025-07-15', totalPackage: 88.34 },
-        { posted: '2025-08-15', totalPackage: 88.34 },
-        { posted: '2025-09-15', totalPackage: 88.34 },
-        { posted: '2025-11-04', totalPackage: 88.34 },
-        { posted: '2025-12-15', totalPackage: 88.34 },
-        { posted: '2026-01-15', totalPackage: 88.34 },
-        { posted: '2026-03-02', totalPackage: 88.34 },
-        { posted: '2026-04-15', totalPackage: 88.34 },
-        { posted: '2026-05-21', totalPackage: 88.34 },
-        { posted: '2026-07-15', totalPackage: 92.11 },
-        { posted: '2026-08-15', totalPackage: 92.11 },
-        { posted: '2026-09-21', totalPackage: 92.11 },
-        { posted: '2026-10-19', totalPackage: 92.11 }
-    ];
+    // ----- Cook County Laborer prevailing wage rates -----
+    // The rate table is now defined at the TOP of this file (in the <head>),
+    // in its own clearly-commented <script> block, so updating rates is a
+    // one-line edit in an obvious place. See the comment block above <title>.
+    // The sort below ensures the list is in date order even if a new rate
+    // was added out of sequence.
     PREVAILING_WAGES.sort(function (a, b) { return a.posted < b.posted ? -1 : 1; });
 
     // ----- Effective-date lookup -----
@@ -1214,15 +1387,18 @@ if (typeof window !== 'undefined') {
     }
 
     // ----- Hook into the existing parser -----
-    // Wrap IDOLParser.processPdf so every extracted row gets augmented,
-    // without touching the original function.
+    // Wrap IDOLParser.processPdf so every extracted row gets augmented with
+    // the prevailing-wage comparison, without touching the original function.
+    // The wrapper passes through the formWarning string from the parser so
+    // the UI can surface layout warnings in the processing log and notices.
     var originalProcessPdf = window.IDOLParser.processPdf;
     window.IDOLParser.processPdf = async function (file) {
-        var rows = await originalProcessPdf(file);
+        var result = await originalProcessPdf(file);
+        var rows = result.rows;
         for (var i = 0; i < rows.length; i++) {
             augmentRow(rows[i]);
         }
-        return rows;
+        return { rows: rows, formWarning: result.formWarning };
     };
 
     // ----- Register the new columns so they show in the table and CSV -----
@@ -1255,7 +1431,7 @@ if (typeof window !== 'undefined') {
 
     var $ = function (id) { return document.getElementById(id); };
     var NOT_FOUND = 'Not found in PDF';
-    var APP_VERSION = '5.4.0';
+    var APP_VERSION = '5.5.0';
     $('app-version').textContent = APP_VERSION;
     var PAGE = 500;
 
@@ -1310,8 +1486,8 @@ if (typeof window !== 'undefined') {
     })();
 
     // Table order (the CSV keeps its own column order, set above).
-    var TABLE_PRIMARY = ['Name', 'Company Name', 'Payroll Period Start', 'Payroll Period End', 'Classification',
-        'CALCULATED_total_compensation_rate', 'Applicable Prevailing Wage', 'Comp vs Prevailing Diff', 'prevailing_wage_check_pass'];
+    var TABLE_PRIMARY = ['Name', 'prevailing_wage_check_pass', 'Comp vs Prevailing Diff', 'CALCULATED_total_compensation_rate', 'Applicable Prevailing Wage',
+        'Company Name', 'Payroll Period Start', 'Payroll Period End', 'Classification'];
     var TABLE_COLUMNS = (function () {
         var cur = window.IDOLParser.CSV_COLUMNS.slice();
         var wanted = TABLE_PRIMARY.concat(['HourlyWageRate', 'Pension', 'Health', 'Vacation', 'Training', 'source_line',
@@ -1324,8 +1500,100 @@ if (typeof window !== 'undefined') {
     var state = {
         rows: [], errors: [], files: [], index: [], limit: PAGE,
         filters: { status: 'all', body: null, project: null, query: '', classification: 'all', contractor: null },
-        sort: { key: null, dir: 1 }, summary: null
+        sort: { key: null, dir: 1 }, summary: null,
+        duplicates: [], conflicts: [], noCaseNumber: [], formWarnings: []
     };
+
+    // ----- Session persistence (localStorage) -----
+    // Saves the extracted data, file metadata, and notices to localStorage so
+    // that an accidental page refresh or tab close does not lose a batch of
+    // work. The original PDF File objects cannot be persisted (browsers don't
+    // allow that), so after a restore the user has the extracted data, filters,
+    // table, and complaint letters — but cannot re-parse or re-download the
+    // source PDFs. Complaint letter edits are NOT persisted; letters are
+    // regenerated from the data on restore.
+    var SESSION_KEY = 'idol_payroll_session_v5_5';
+
+    function saveSession() {
+        if (!state.rows.length && !state.errors.length) {
+            try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+            return;
+        }
+        // Strip the File-object-dependent index (rebuilt on restore) and any
+        // non-serializable fields. The rows themselves are plain objects.
+        var toSave = {
+            rows: state.rows,
+            files: state.files,
+            duplicates: state.duplicates,
+            conflicts: state.conflicts,
+            noCaseNumber: state.noCaseNumber,
+            formWarnings: state.formWarnings,
+            savedAt: new Date().toISOString()
+        };
+        try {
+            localStorage.setItem(SESSION_KEY, JSON.stringify(toSave));
+        } catch (e) {
+            // localStorage may be full (large batch) or disabled — fail silently.
+            // The tool still works normally; persistence is a convenience.
+        }
+    }
+
+    function loadSession() {
+        try {
+            var raw = localStorage.getItem(SESSION_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function clearSession() {
+        try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+    }
+
+    function restoreSession(saved) {
+        state.rows = saved.rows || [];
+        state.errors = saved.errors || [];
+        state.files = saved.files || [];
+        state.duplicates = saved.duplicates || [];
+        state.conflicts = saved.conflicts || [];
+        state.noCaseNumber = saved.noCaseNumber || [];
+        state.formWarnings = saved.formWarnings || [];
+        // Rebuild the search index from the restored rows
+        var cols = IDOLParser.CSV_COLUMNS;
+        state.index = state.rows.map(function (r) {
+            return { row: r, text: cols.map(function (c) { var v = r[c]; return (v === null || v === undefined || typeof v === 'boolean') ? '' : String(v); }).join(' ').toLowerCase() };
+        });
+        // Show the results
+        $('upload-section').hidden = true;
+        showResults();
+    }
+
+    // Check for a saved session on page load and show a restore banner
+    function initSessionRestore() {
+        var saved = loadSession();
+        if (!saved || (!saved.rows.length && !saved.errors.length && !saved.files.length)) return;
+        var banner = document.createElement('div');
+        banner.className = 'notice';
+        banner.style.marginTop = 'var(--s2)';
+        banner.innerHTML = '<strong>A previous session was found.</strong> ' +
+            plural(saved.rows.length, 'payroll row') + ' from ' + plural(saved.files.length, 'file') +
+            ', saved ' + (saved.savedAt ? fmtDate(saved.savedAt.slice(0, 10)) : 'earlier') + '. ' +
+            '<button type="button" class="btn btn-primary" id="restore-btn" style="margin-left: var(--s2);">Restore session</button> ' +
+            '<button type="button" class="btn" id="discard-btn" style="margin-left: var(--s1);">Discard</button>' +
+            '<p class="small" style="margin-top: var(--s1); margin-bottom: 0;">The original PDF files are not available after a restore, but you can still use the table, exports, and complaint letters. Complaint letter edits are not saved.</p>';
+        var uploadSection = $('upload-section');
+        uploadSection.parentNode.insertBefore(banner, uploadSection);
+        $('restore-btn').addEventListener('click', function () {
+            banner.remove();
+            restoreSession(saved);
+        });
+        $('discard-btn').addEventListener('click', function () {
+            banner.remove();
+            clearSession();
+        });
+    }
 
     // ----- Helpers -----
     function esc(s) {
@@ -1432,7 +1700,7 @@ if (typeof window !== 'undefined') {
         log.innerHTML = '';
         bar.max = files.length; bar.value = 0;
         state.rows = []; state.errors = []; state.files = [];
-        state.duplicates = []; state.conflicts = []; state.noCaseNumber = [];
+        state.duplicates = []; state.conflicts = []; state.noCaseNumber = []; state.formWarnings = [];
         // caseNumber (normalized) -> array of { filename, signature } for each
         // variant seen so far. Used to detect duplicates (same signature) and
         // conflicts (same case number, different signature).
@@ -1445,9 +1713,21 @@ if (typeof window !== 'undefined') {
             logLine(li, 'Reading', file.name);
             log.appendChild(li);
             try {
-                var rows = await IDOLParser.processPdf(file);
+                // processPdf now returns { rows, formWarning }. The formWarning
+                // is non-null when the PDF does not match the expected IDOL CTP
+                // layout. We surface it in the processing log and the notices
+                // panel, but still process the rows.
+                var result = await IDOLParser.processPdf(file);
+                var rows = result.rows;
+                var formWarning = result.formWarning;
                 var caseNum = rows.length ? norm(rows[0]['Case Number']) : '';
                 var sig = rows.length ? fileSignature(rows) : '';
+
+                // Record the form warning for the notices panel
+                if (formWarning) {
+                    if (!state.formWarnings) state.formWarnings = [];
+                    state.formWarnings.push({ filename: file.name, warning: formWarning });
+                }
 
                 if (!rows.length) {
                     // No rows extracted — nothing to dedup, record as empty
@@ -1458,7 +1738,7 @@ if (typeof window !== 'undefined') {
                     state.rows.push.apply(state.rows, rows);
                     state.files.push({ filename: file.name, rowCount: rows.length, error: null });
                     state.noCaseNumber.push({ filename: file.name, rowCount: rows.length });
-                    logLine(li, 'Check', file.name + ': ' + plural(rows.length, 'employee row') + ' (no Case Number read, not checked for duplicates)');
+                    logLine(li, formWarning ? 'Check' : 'Read', file.name + ': ' + plural(rows.length, 'employee row') + ' (no Case Number read, not checked for duplicates)' + (formWarning ? ' — FORM WARNING' : ''));
                 } else if (seenByCase.has(caseNum)) {
                     // Case Number already seen — compare signatures
                     var variants = seenByCase.get(caseNum);
@@ -1477,14 +1757,14 @@ if (typeof window !== 'undefined') {
                         state.rows.push.apply(state.rows, rows);
                         state.files.push({ filename: file.name, rowCount: rows.length, error: null, conflictWithSameCaseNumber: true, conflictsWith: variants[0].filename });
                         state.conflicts.push({ filename: file.name, caseNumber: caseNum, conflictsWith: variants[0].filename });
-                        logLine(li, 'Conflict', file.name + ': ' + plural(rows.length, 'employee row') + ' — CONFLICT (same Case ' + caseNum + ' as ' + variants[0].filename + ', different data), kept for review');
+                        logLine(li, 'Conflict', file.name + ': ' + plural(rows.length, 'employee row') + ' — CONFLICT (same Case ' + caseNum + ' as ' + variants[0].filename + ', different data), kept for review' + (formWarning ? ' — FORM WARNING' : ''));
                     }
                 } else {
                     // New case number — record and keep
                     seenByCase.set(caseNum, [{ filename: file.name, signature: sig }]);
                     state.rows.push.apply(state.rows, rows);
                     state.files.push({ filename: file.name, rowCount: rows.length, error: null });
-                    logLine(li, 'Read', file.name + ': ' + plural(rows.length, 'employee row'));
+                    logLine(li, 'Read', file.name + ': ' + plural(rows.length, 'employee row') + (formWarning ? ' — FORM WARNING' : ''));
                 }
             } catch (e) {
                 state.errors.push({ filename: file.name, error: e.message });
@@ -1552,7 +1832,10 @@ if (typeof window !== 'undefined') {
                     if (ek) w.belowEmployees.add(ek);
                     var gap = isNum(r['Comp vs Prevailing Diff']) ? -r['Comp vs Prevailing Diff'] : 0;
                     w.shortfalls.push(gap);
-                    var hrs = hoursOf(r); if (hrs > 0) { w.backWages += round2(gap * hrs); } else { w.noHours++; }
+                    // Use premium-weighted hours (OT at 1.5x, DT at 2x) for
+                    // the back wage estimate. This is the legally correct amount,
+                    // not a conservative lower bound.
+                    var hrs = premiumHoursOf(r); if (hrs > 0) { w.backWages += round2(gap * hrs); } else { w.noHours++; }
                     var uk = ck || '(none)';
                     var u = under.get(uk);
                     if (!u) { u = { name: norm(r['Company Name']) || NOT_FOUND, rows: 0, employees: new Set(), max: 0 }; under.set(uk, u); }
@@ -1595,8 +1878,8 @@ if (typeof window !== 'undefined') {
             : '<span class="num range">Not found</span><div class="muted small">No payroll dates were read from the PDFs.</div>';
 
         function listStat(label, n, items) {
-            return '<details class="stat"><summary><span class="label">' + label + '</span><span class="num">' + n + '</span></summary>' +
-                '<div class="stat-list"><p class="muted small">Select a name to filter the table.</p>' +
+            return '<details class="stat"><summary><span class="label">' + label + '</span><span class="num">' + n + '</span>' +
+                '<span class="sub">Select to filter</span></summary>' + '<div class="stat-list"><p class="muted small">Select a name to filter the table.</p>' +
                 '<ul aria-label="' + label + '. Choose one to filter the table." tabindex="0">' + items + '</ul></div></details>';
         }
         $('counts').innerHTML =
@@ -1609,30 +1892,32 @@ if (typeof window !== 'undefined') {
         // Prevailing wage panel
         var w = S.wage, panel = $('wage-panel');
         panel.className = 'card wage ' + (w.below > 0 ? 'below' : (w.evaluated > 0 ? 'clear' : ''));
-        var headline, body = '';
+        var headline, body = '', contractorTable = '';
         if (w.evaluated === 0) {
             headline = 'No payroll rows could be compared with a prevailing wage.';
         } else if (w.below === 0) {
             headline = 'All ' + plural(w.evaluated, 'compared payroll row') + ' meet or exceed the prevailing total rate.';
         } else {
             var backText = w.backWages > 0 ? money(round2(w.backWages)) : 'No hours shown';
+            // Liquidated damages: 20% of back wages, owed to the Department
+            // under Section 11 (50% for a second or later action).
+            var penaltyText = w.backWages > 0 ? money(round2(w.backWages * 0.20)) : 'No hours shown';
             headline = w.belowEmployees.size > 0
                 ? '<span class="neg">' + plural(w.belowEmployees.size, 'employee') + '</span> at ' + plural(S.under.size, 'contractor') + ' ' + (w.belowEmployees.size === 1 ? 'was' : 'were') +
                   ' paid below the prevailing total rate on ' + w.below + ' of ' + w.evaluated + ' compared payroll rows.'
                 : '<span class="neg">' + w.below + '</span> of ' + w.evaluated + ' compared payroll rows are below the prevailing total rate.';
             var uRows = Array.from(S.under.values()).sort(function (a, b) { return b.rows - a.rows; });
             body = '<div class="facts">' +
-                fact('Employees affected', S.wage.belowEmployees.size) +
-                fact('Contractors affected', S.under.size) +
-                fact('Estimated back wages', backText) +
-                fact('Largest shortfall per hour', money(S.maxGap)) +
-                fact('Average shortfall per hour', money(S.avgGap)) + '</div>' +
-                '<div class="mini-wrap" tabindex="0" role="region" aria-label="Underpayment by contractor"><table><thead><tr>' +
+                fact('Estimated back wages', backText, 'Owed to the workers', 'major') +
+                fact('Statutory penalty', penaltyText, '20% of back wages, owed to the Department', 'major') +
+                fact('Largest shortfall per hour', money(S.maxGap), '', 'minor') +
+                fact('Average shortfall per hour', money(S.avgGap), '', 'minor') + '</div>';
+            contractorTable = '<div><h3 class="block-title">By contractor</h3><div class="mini-wrap" tabindex="0" role="region" aria-label="Underpayment by contractor"><table><thead><tr>' +
                 '<th><span class="th-plain">Contractor</span></th><th class="num"><span class="th-plain">Rows below</span></th>' +
                 '<th class="num"><span class="th-plain">Employees</span></th><th class="num"><span class="th-plain">Largest shortfall per hour</span></th></tr></thead><tbody>' +
                 uRows.map(function (u) {
                     return '<tr><td class="text">' + esc(u.name) + '</td><td class="num">' + u.rows + '</td><td class="num">' + u.employees.size + '</td><td class="num neg">' + money(round2(u.max)) + '</td></tr>';
-                }).join('') + '</tbody></table></div>';
+                }).join('') + '</tbody></table></div></div>';
         }
         var notes = '';
         var cfRows = classificationFilteredRows();
@@ -1655,17 +1940,17 @@ if (typeof window !== 'undefined') {
                 ' could not be compared because no prevailing rate is on file for the payroll start date.' +
                 ' <button type="button" class="link-btn" data-status="norate">Show these rows</button></p>';
         }
-        notes += '<details class="method"><summary>Method</summary><p class="muted small">Comparison: the calculated total rate (hourly wage plus pension, health, vacation, and training) against the Cook County Laborer total package posted on or before the payroll period start date. A row is flagged when it falls short by more than one cent.</p>' +
-            (w.below > 0 ? '<p class="muted small">Estimated back wages: the hourly shortfall times the hours worked in each below-rate payroll row, with no overtime or double-time premium added.' +
+        var methodHtml = '<details class="method"><summary>How these figures are calculated</summary><p class="muted small">Comparison: the calculated total rate (hourly wage plus pension, health, vacation, and training) against the Cook County Laborer total package posted on or before the payroll period start date. A row is flagged when it falls short by more than one cent.</p>' +
+            (w.below > 0 ? '<p class="muted small">Estimated back wages: the hourly shortfall times the hours worked, with overtime hours counted at 1.5x and double-time hours at 2x, reflecting the premium owed on those hours.' +
                 (w.noHours ? ' ' + plural(w.noHours, 'below-rate row') + ' show no hours and are not included.' : '') +
-                ' Complaint letter totals can differ, for example when the apprentice option is off.</p>' : '') + '</details>';
+                ' The statutory penalty (20% of the underpayment) is owed to the Department under Section 11 (820 ILCS 130/11); 50% applies for a second or later action. Complaint letter totals can differ, for example when the apprentice option is off.</p>' : '') + '</details>';
 
         panel.innerHTML =
-            '<div class="wage-head"><div><h2>Prevailing wage</h2><p class="headline">' + headline + '</p></div>' +
-            (w.below > 0 ? '<button type="button" class="btn" data-status="below">Show these rows in the table</button>' : '') + '</div>' +
-            body + notes;
+            '<div class="wage-head"><h2>Prevailing wage</h2><p class="headline">' + headline + '</p>' +
+            (w.below > 0 ? '<button type="button" class="btn btn-primary" data-status="below">Show these rows in the table</button>' : '') + '</div>' +
+            body + methodHtml + contractorTable + (notes ? '<div class="wage-notes">' + notes + '</div>' : '');
     }
-    function fact(label, value) { return '<div class="fact"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div></div>'; }
+    function fact(label, value, note, kind) { return '<div class="fact ' + (kind || '') + '"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div>' + (note ? '<div class="note">' + esc(note) + '</div>' : '') + '</div>'; }
 
     // ----- Table -----
     function typeOf(col) {
@@ -1695,6 +1980,7 @@ if (typeof window !== 'undefined') {
     function cellHtml(r, col, secStart) {
         var v = r[col], t = typeOf(col), cls = [];
         if (isSecondary(col)) cls.push('secondary');
+        if (col === 'Company Name' || col === 'Classification') cls.push('context');
         if (secStart) cls.push('sec-start');
         var inner, empty = (v === null || v === undefined || v === '');
         if (t === 'wage') {
@@ -1716,7 +2002,7 @@ if (typeof window !== 'undefined') {
         }
         else if (t === 'date') inner = esc(fmtDate(v));
         else if (t === 'check') { return '<td class="' + cls.join(' ') + '"><span class="badge ' + (v === true ? 'meets' : 'below') + '">' + (v === true ? 'PASS' : 'FAIL') + '</span></td>'; }
-        else { cls.push('text'); inner = esc(v); }
+        else { cls.push('text'); inner = (col === 'Classification' && String(v).length > 36) ? esc(String(v).slice(0, 16)) + '\u2026' + esc(String(v).slice(-18)) : esc(v); }
         var title = t === 'text' ? ' title="' + esc(v) + '"' : '';
         return '<td class="' + cls.join(' ') + '"' + title + '>' + inner + '</td>';
     }
@@ -1777,10 +2063,12 @@ if (typeof window !== 'undefined') {
     }
 
     function updateExportLabels(filteredCount) {
-        $('download-csv').textContent = 'Download CSV, ' + plural(classificationFilteredRows().length, 'row');
-        $('download-csv-filtered').textContent = 'Download CSV, ' + plural(filteredCount, 'filtered row');
+        var scopeCount = classificationFilteredRows().length;
+        $('download-csv').querySelector('.mi-label').textContent = 'Download CSV, ' + plural(scopeCount, 'row');
+        $('download-csv-filtered').querySelector('.mi-label').textContent = 'Download CSV, ' + plural(filteredCount, 'filtered row');
         $('download-csv-filtered').disabled = filteredCount === 0;
-        $('download-json').textContent = 'Download JSON, ' + plural(state.rows.length, 'row');
+        $('download-csv-filtered').hidden = filteredCount === scopeCount && !state.sort.key;
+        $('download-json').querySelector('.mi-label').textContent = 'Download JSON, ' + plural(state.rows.length, 'row');
     }
 
     function renderControls() {
@@ -1890,7 +2178,6 @@ if (typeof window !== 'undefined') {
         var ok = state.files.filter(function (f) { return !f.error; }).length;
         var dupCount = state.duplicates.length;
         var summaryText = plural(ok, 'PDF') + ' read, ' + plural(state.rows.length, 'payroll row') + ' extracted';
-        if (dupCount) summaryText += ' (' + plural(dupCount, 'duplicate CTP') + ' skipped)';
         summaryText += '.';
         $('results-summary').textContent = summaryText;
 
@@ -1916,6 +2203,12 @@ if (typeof window !== 'undefined') {
             notes += '<div class="notice"><strong>No employee rows were found in:</strong><ul>' +
                 empty.map(function (f) { return '<li>' + esc(f.filename) + '</li>'; }).join('') + '</ul></div>';
         }
+        // Form layout warnings — shown when a PDF does not match the expected
+        // IDOL CTP template. The data is still processed; this is informational.
+        if (state.formWarnings && state.formWarnings.length) {
+            notes += '<div class="notice"><strong>' + plural(state.formWarnings.length, 'file') + ' with a form layout warning (processed, but data may be unreliable):</strong><ul>' +
+                state.formWarnings.map(function (w) { return '<li>' + esc(w.filename) + ': ' + esc(w.warning) + '</li>'; }).join('') + '</ul></div>';
+        }
         if (notes) {
             var parts = [];
             if (state.errors.length) parts.push(plural(state.errors.length, 'file') + ' could not be read');
@@ -1923,15 +2216,19 @@ if (typeof window !== 'undefined') {
             if (state.duplicates.length) parts.push(plural(state.duplicates.length, 'duplicate') + ' skipped');
             if (state.noCaseNumber.length) parts.push(plural(state.noCaseNumber.length, 'file') + ' without a Case Number');
             if (empty.length) parts.push(plural(empty.length, 'file') + ' with no employee rows');
+            if (state.formWarnings && state.formWarnings.length) parts.push(plural(state.formWarnings.length, 'file') + ' with form layout warnings');
             var serious = state.errors.length > 0 || state.conflicts.length > 0;
-            notes = '<details class="notices' + (serious ? ' serious' : '') + '"' + (serious ? ' open' : '') + '><summary>Notices: ' + parts.join('; ') + '</summary><div class="notices-body">' + notes + '</div></details>';
+            notes = '<details class="notices' + (serious ? ' serious' : '') + '"><summary>' + parts.join('; ') + '</summary><div class="notices-body">' + notes + '</div></details>';
         }
         $('notices').innerHTML = notes;
 
         var hasRows = state.rows.length > 0;
         $('dashboard').hidden = !hasRows;
-        $('download-csv').disabled = !hasRows; $('download-json').disabled = !hasRows; 
+        $('download-csv').disabled = !hasRows; $('download-json').disabled = !hasRows;
         if (hasRows) { renderDashboard(); renderTable(); }
+        // Persist the session to localStorage so a page refresh doesn't
+        // lose the batch. See saveSession() for details on what is saved.
+        saveSession();
         window.scrollTo(0, 0);
     }
 
@@ -2071,7 +2368,12 @@ if (typeof window !== 'undefined') {
                 prevailingWage: {
                     recordsCompared: w.evaluated, recordsBelow: w.below, recordsMeeting: w.meets, recordsWithoutRate: w.norate,
                     employeesBelow: w.belowEmployees.size, contractorsBelow: S.under.size,
-                    largestShortfallPerHour: w.below ? S.maxGap : null, averageShortfallPerHour: w.below ? S.avgGap : null
+                    largestShortfallPerHour: w.below ? S.maxGap : null, averageShortfallPerHour: w.below ? S.avgGap : null,
+                    // Back wages use premium-weighted hours (OT 1.5x, DT 2x).
+                    // Liquidated damages are 20% of back wages (Section 11, first action).
+                    estimatedBackWagesToWorkers: w.below ? round2(w.backWages) : null,
+                    statutoryPenaltyToDepartment20: w.below ? round2(w.backWages * 0.20) : null,
+                    statutoryPenaltyToDepartment50: w.below ? round2(w.backWages * 0.50) : null
                 },
                 extractionChecks: { recordsWithAnyFlag: anyFlag,
                     recordsFromNpLine: rows.filter(function (r) { return r.np_sourced === true; }).length,
@@ -2172,7 +2474,20 @@ if (typeof window !== 'undefined') {
             money0(r['Vacation']) + ' vacation, and ' + money0(r['Training']) + ' training)';
     }
     function hoursOf(r) {
+        // Total actual hours worked (straight + OT + DT), with NO premium
+        // weighting. Used for display ("for 40 hours").
         return ['_StraightHours', '_OTHours', '_DblTimHours'].reduce(function (s, k) { return s + (isNum(r[k]) ? r[k] : 0); }, 0);
+    }
+    // Premium-weighted hours for back wage calculation. Overtime hours count
+    // at 1.5x and double-time hours at 2x, reflecting that the prevailing rate
+    // shortfall applies on top of the overtime/double-time premium. This gives
+    // the legally correct back wage amount rather than a conservative lower
+    // bound. Used wherever back wages are computed.
+    function premiumHoursOf(r) {
+        var s  = isNum(r['_StraightHours']) ? r['_StraightHours'] : 0;
+        var ot = isNum(r['_OTHours'])       ? r['_OTHours']       : 0;
+        var dt = isNum(r['_DblTimHours'])   ? r['_DblTimHours']   : 0;
+        return s + 1.5 * ot + 2 * dt;
     }
     function hoursText(h) { return (Math.round(h * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
     function projLabel(r) {
@@ -2275,14 +2590,17 @@ if (typeof window !== 'undefined') {
             if (paras.length) out.push((multi ? projHeading(p.r0) : 'Findings') + '\n' + paras.join('\n\n'));
         });
 
-        // Estimated back wages, in its own section
+        // Estimated back wages, in its own section.
+        // Uses premium-weighted hours: overtime at 1.5x, double-time at 2x.
+        // Also computes the statutory penalty under Section 11 (20% of the
+        // underpayment, owed to the Department; 50% for a second or later action).
         if (opt.backwages) {
             var B = ['Estimated back wages'];
             var counted = below.filter(function (r) { return hoursOf(r) > 0; });
             if (!counted.length) {
                 B.push('The payrolls do not show hours worked for these workers, so we did not estimate back wages.');
             } else {
-                B.push('We estimated the amount owed by multiplying the hourly shortfall in each payroll by the hours worked in that payroll (straight-time, overtime, and double-time hours together). The estimate does not add any overtime or double-time premium, so the amount owed may be higher.');
+                B.push('We estimated the amount owed by multiplying the hourly shortfall by the hours worked, with overtime hours counted at 1.5 times their number and double-time hours at 2 times. This reflects that the prevailing rate applies to all hours, and the overtime and double-time premiums stack on top of the base shortfall.');
                 var total = 0, lines = [];
                 projList.forEach(function (p) {
                     var rs = p.rows.filter(function (r) { return hoursOf(r) > 0; });
@@ -2290,7 +2608,9 @@ if (typeof window !== 'undefined') {
                     var sub = 0, wl = [];
                     byWorker(rs).forEach(function (w) {
                         var amt = 0, hrs = 0;
-                        w.rows.forEach(function (r) { amt += round2(gapOf(r) * hoursOf(r)); hrs += hoursOf(r); });
+                        // amt uses premium-weighted hours for the calculation;
+                        // hrs uses actual hours for the display ("for 40 hours").
+                        w.rows.forEach(function (r) { amt += round2(gapOf(r) * premiumHoursOf(r)); hrs += hoursOf(r); });
                         amt = round2(amt); sub += amt;
                         wl.push('- ' + personName(w.name) + ': ' + money(amt) + ' for ' + hoursText(hrs) + ' hours');
                     });
@@ -2299,7 +2619,16 @@ if (typeof window !== 'undefined') {
                     if (opt.detail) lines = lines.concat(wl);
                 });
                 if (lines.length) B.push(lines.join('\n'));
-                B.push('Estimated total for ' + C + ': ' + money(round2(total)) + '.');
+                B.push('Estimated back wages owed to workers for ' + C + ': ' + money(round2(total)) + '.');
+
+                // Liquidated damages — statutory penalty owed to the Department
+                // under Section 11 (820 ILCS 130/11). 20% of the underpayment for
+                // a first action, 50% for a second or later. The tool cannot
+                // determine whether a prior action exists, so it defaults to 20%
+                // and notes the 50% possibility.
+                var penalty = round2(total * 0.20);
+                B.push('Under Section 11 of the Prevailing Wage Act (820 ILCS 130/11), the contractor is also liable to the Department for 20% of the underpayment, which is ' + money(penalty) + '. This assumes no prior action has been taken against this contractor; if the Department has taken a prior action, the penalty is 50% of the underpayment, or ' + money(round2(total * 0.50)) + '.');
+
                 var skipped = below.length - counted.length;
                 if (skipped) B.push(plural(skipped, 'payroll') + ' above ' + sv(skipped, 'shows', 'show') + ' no hours and ' + sv(skipped, 'is', 'are') + ' not included in this estimate.');
             }
@@ -2436,6 +2765,16 @@ if (typeof window !== 'undefined') {
         $('copy-status').textContent = '';
         cxFitAll();
     }
+    // ----- Popovers: close on outside click, on choosing an item, and on Escape -----
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('details.menu[open], details.stat[open], details.notices[open]').forEach(function (d) {
+            if (!d.contains(e.target) || e.target.closest('.menu-item, [data-filter]')) d.open = false;
+        });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('details.menu[open], details.stat[open], details.notices[open]').forEach(function (d) { d.open = false; d.querySelector('summary').focus(); });
+    });
     // ----- Tabs -----
     var TABS = ['wage', 'table', 'complaint'], PANELS = { wage: 'panel-wage', table: 'table-section', complaint: 'complaint-section' };
     function showTab(name, focusTab) {
@@ -2512,7 +2851,10 @@ if (typeof window !== 'undefined') {
     $('reset-btn').addEventListener('click', function () {
         if (!window.confirm('Start over? This clears all results and any edits to the complaint letters. Files you already downloaded are not affected.')) return;
         state.rows = []; state.errors = []; state.files = []; state.index = [];
-        state.duplicates = []; state.conflicts = []; state.noCaseNumber = [];
+        state.duplicates = []; state.conflicts = []; state.noCaseNumber = []; state.formWarnings = [];
+        // Clear the saved session so the restore banner doesn't appear after
+        // an intentional reset.
+        clearSession();
         fileInput.value = '';
         uploadMsg.hidden = true;
         $('results-section').hidden = true;
@@ -2521,6 +2863,11 @@ if (typeof window !== 'undefined') {
         $('upload-section').hidden = false;
         window.scrollTo(0, 0);
     });
+
+    // ----- On page load: check for a saved session and offer to restore -----
+    // This runs immediately (the IIFE executes on page load) and shows a
+    // restore banner above the upload zone if a previous session was found.
+    initSessionRestore();
 })();
 </script>
 </body>
