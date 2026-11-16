@@ -318,7 +318,7 @@ tbody tr:hover td { background: var(--hover); }
 <body>
 <header class="app-header">
   <h1>IDOL Certified Payroll Extractor</h1>
-  <p class="deck">Reads Illinois Department of Labor (IDOL) Certified Transcript of Payroll (CTP) PDFs</p>
+  <p class="deck">Reads IDOL CTP PDFs</p>
 </header>
 
 <main id="main">
@@ -326,10 +326,10 @@ tbody tr:hover td { background: var(--hover); }
   <section id="upload-section" aria-label="Upload">
     <label class="drop-zone" id="drop-zone">
       <span class="title">Drop PDF files here, or click to choose files</span>
-      <span class="muted small drop-note">Files are read in your browser and are not uploaded.</span>
+      <span class="muted small drop-note">The PDFs will be read using browser.</span>
       <input type="file" id="file-input" multiple accept=".pdf,application/pdf">
     </label>
-    <p class="lead">Compares each employee&rsquo;s pay with the Cook County Laborer prevailing wage and drafts a complaint letter for each contractor that paid less.</p>
+    <p class="lead">Processes CTP PDFs and pulls the wage tables into spreadsheet format.</p>
     <p id="upload-msg" class="notice danger" role="alert" hidden style="margin-top: var(--s2);"></p>
   </section>
 
@@ -417,7 +417,7 @@ tbody tr:hover td { background: var(--hover); }
   </section>
 </main>
 
-<footer>LDC LMCC Research Department &middot; Version <span id="app-version"></span></footer>
+<footer>LDC LMCC Research Department</span></footer>
 <script>
 /**
  * IDOL Certified Payroll PDF Parser (JavaScript port)
